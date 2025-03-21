@@ -7,6 +7,7 @@ import bencodepy
 import hashlib
 import binascii
 import requests
+from requests import PreparedRequest
 from threading import Thread
 
 def get_host_default_interface_ip():
@@ -65,12 +66,17 @@ def parse_torrent(file_path):
         "pieces": pieces
     }
 
+# Function to parse response from tracker
+def parse_response(content):
+    return content.get('peers')
+
 # Function to send request to tracker
 def send_request_to_tracker(announce, info_hash, piece_length):
     # Các tham số gửi lên tracker
     params = {
         "info_hash": info_hash,
         "peer_id": "-UT360S-7p1....A3D9F0",
+        "peer_ip": get_host_default_interface_ip(),
         "port": 6881,
         "uploaded": 0,
         "downloaded": 0,
@@ -80,7 +86,10 @@ def send_request_to_tracker(announce, info_hash, piece_length):
     }
     try:
         # Gửi request GET đến tracker với các tham số
-        response = requests.get(announce, params=params, timeout=5)
+        response = requests.get(announce, params=params, timeout=10)
+        print(response)
+        print(response.content)
+        print(bencodepy.decode(response.content))
         # Kiểm tra nếu request thành công
         if response.status_code == 200:
             print(f"✅ Tracker Response Received:\n{response.text}")
@@ -132,8 +141,8 @@ if __name__ == "__main__":
     parser.add_argument('--server-ip')
     parser.add_argument('--server-port', type=int)
     torrent_info = parse_torrent("C:/Users/ADMIN/Pictures/Acer/Acer_Wallpaper_03_5000x2814.jpg.torrent")
-    list_peer = send_request_to_tracker('http://10.0.211.129:22236', torrent_info['info_hash'], torrent_info['piece_length'])
-
+    data_response = send_request_to_tracker('http://192.168.31.147:22236', torrent_info['info_hash'], torrent_info['piece_length'])
+    # list_response = parse_response(data_response)
 
     # parser.add_argument('--agent-path')
 
