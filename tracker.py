@@ -1,14 +1,14 @@
 import socket
-import time
-from idlelib import query
 from threading import Thread
 from urllib.parse import urlparse, parse_qs
 import bencodepy
-import requests
+import utils
+
 # In-memory data structures
-peers = [] # {peer_id: {"ip": str, "port": int, "files": [file_hashes]}}
-files = {}  # {file_hash: {"piece_count": int, "nodes": [peer_ids]}}
+peers = []  # {peer_id: {"ip": str, "port": int, "files": [file_hashes]}}
 tracker_id = "hehehehehehehehehehe"  # Unique tracker ID
+torrents = {}
+
 
 def new_connection(addr, conn):
     print(addr)
@@ -19,26 +19,27 @@ def new_connection(addr, conn):
 
             # Lấy dòng đầu tiên (Request Line)
             request_line = lines[0]
-            print(request_line)
             method, path, http_version = request_line.split(" ")
+            if method != "GET":
+                conn.sendall("HTTP/1.1 100 NOT GET REQUEST\r\n".encode())
+                return
 
             # Phân tích URL để lấy query parameters
             parsed_url = urlparse(path)
             query_params = parse_qs(parsed_url.query)
-            
-            if() # TODO: Check if a peer is in list
-            # Create new peer
-            peer_id = query_params['peer_id'][0]
-            peer_ip = query_params['peer_ip'][0]
-            peer_port = query_params['port'][0]
 
-            # Append to list of peers
-            peers.append({"peer_id": peer_id, "ip": peer_ip, "port": int(peer_port)})
+            # Exact value
+            info_hash = query_params["info_hash"][0]
+            peer_id = query_params["peer_id"][0]
+            peer_port = int(query_params["port"][0])
+            peer_ip = addr[0]
+            uploaded = int(query_params["uploaded"][0])
+            downloaded = int(query_params["downloaded"][0])
+            left = int(query_params["left"][0])
+            compact_mode = int(query_params.get("compact", [0])[0])
 
-            # Send response to peer
-            if method != "GET":
-                 conn.sendall("HTTP/1.1 100 NOT GET REQUEST\r\n".encode())
-            elif query_params['info_hash'] == '':
+            # Check and send response to peer
+            if query_params['info_hash'] == '':
                 conn.sendall("HTTP/1.1 102 MISSING INFO HASH\r\n".encode())
             elif query_params['peer_id'] == '':
                 conn.sendall("HTTP/1.1 103 MISSING PEER ID\r\n".encode())
@@ -47,64 +48,74 @@ def new_connection(addr, conn):
             # elif len(query_params['peer_id'][0]) != 20:
             #     conn.sendall("HTTP/1.1 151 INVALID PEER ID\r\n".encode())
             else:
-                params = {
-                    "interval": 1800,
-                    "peers": peers
-                }
-                if int(query_params['compact'][0]) == 1:
-                    # Compact response (binary format)
-                    compact_peers = b"".join(
-                        socket.inet_aton(peer["ip"]) + peer["port"].to_bytes(2, "big")
-                        for peer in peers
-                    )
-                    params[b"peers"] = compact_peers
-                    # Non-compact response (list of dictionaries)
-                    # Bencode response
-                bencoded_response = bencodepy.encode(params)
+                if info_hash not in torrents:
+                    torrents[info_hash] = []  # Initialize torrent peer list
+                peer_list = torrents[info_hash]
 
-                # Send HTTP response
-                conn.sendall(
-                    b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n" + bencoded_response
-                )
-            # TODO
-            # new_peer = {"peer_id": peer_id, "port": port}
-            # TODO: Add new peer to list
+                existing_peer = next((p for p in peer_list if p["peer_id"] == peer_id), None)
+                if existing_peer:
+                    existing_peer.update({
+                        "peer_id": peer_id,
+                        "ip": peer_ip,
+                        "port": peer_port,
+                        "uploaded": uploaded,
+                        "downloaded": downloaded,
+                        "left": left
+                    })
+                else:
+                    # Prepare response
+                    response_data = {"interval": 1800}
+
+                    if compact_mode == 1:
+                        compact_peers = b"".join(
+                            socket.inet_aton(peer["ip"]) + peer["port"].to_bytes(2, "big")
+                            for peer in peer_list
+                        )
+                        response_data[b"peers"] = compact_peers
+                    else:
+                        response_data[b"peers"] = [{"ip": p["ip"], "peer_id": p["peer_id"], "port": p["port"]} for p in
+                                                   peer_list]
+
+                    # Encode and send response
+                    bencoded_response = bencodepy.encode(response_data)
+                    conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n" + bencoded_response)
+                    print("HEHE")
+                    conn.close()
+
+                    peer_list.append({
+                        "peer_id": peer_id,
+                        "ip": peer_ip,
+                        "port": peer_port,
+                        "uploaded": uploaded,
+                        "downloaded": downloaded,
+                        "left": left
+                    })
+
             break
         except Exception as e:
             print(e)
             print('Error occurred!')
             break
-        time.sleep(5)
-        break
 
-def get_host_default_interface_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(('8.8.8.8', 1))
-        ip = s.getsockname()[0]
-    except Exception:
-        ip = '127.0.0.1'
-    finally:
-        s.close()
-    return ip
 
-def server_program(host, port):
+def tracker_server(host, port):
     serversocket = socket.socket()
     serversocket.bind((host, port))
 
     serversocket.listen(10)
 
     while True:
+        print("Waiting for connection...")
         conn, addr = serversocket.accept()
         nconn = Thread(target=new_connection, args=(addr, conn))
         nconn.start()
         nconn.join()
-        time.sleep(5)
-        break
+
+
 
 if __name__ == "__main__":
     # hostname = socket.gethostname()
-    hostip = get_host_default_interface_ip()
+    hostip = utils.get_host_default_interface_ip()
     port = 22236
     print("Listening on {}:{}".format(hostip, port))
-    server_program(hostip, port)
+    tracker_server(hostip, port)

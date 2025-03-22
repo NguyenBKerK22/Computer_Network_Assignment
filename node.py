@@ -10,181 +10,53 @@ import requests
 from requests import PreparedRequest
 from threading import Thread
 import math
+import uuid
+import parsers
+import utils
+import client
+import server
 
-SERVER1_PORT = 33357
-SERVER2_PORT = 33358
+# Create peer infomation
+peerip = utils.get_host_default_interface_ip()
+peerid = utils.generate_20_byte_peer_id()
+print(f"Peer ID: {peerid}")
 
-def get_host_default_interface_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(('8.8.8.8', 1))
-        ip = s.getsockname()[0]
-    except Exception:
-        ip = '127.0.0.1'
-    finally:
-        s.close()
-    return ip
-
-# Function to parse a magnet URI
-def parse_magnet_uri(magnet_link):
-    # Parse the magnet link
-    parsed = urlparse(magnet_link)
-    params = parse_qs(parsed.query)
-
-    # Extract info hash
-    info_hash = params.get('xt')[0].split(":")[-1]
-
-    # Extract display name (optional)
-    display_name = params.get('dn', ['Unknown'])[0]
-
-    # Extract tracker URL (optional)
-    tracker_url = params.get('tr', [''])[0]
-
-    return info_hash, display_name, tracker_url
-
-# Function to parse torrent file
-def parse_torrent(file_path):
-    with open(file_path, 'rb') as f:
-        torrent_data = bencodepy.decode(f.read())
-    #
-    announce = torrent_data.get(b'announce', b'').decode()
-    created_by = torrent_data.get(b'created by', b'').decode()
-    creation_date = torrent_data.get(b'creation date', None)
-    encoding = torrent_data.get(b'encoding', b'').decode()
-    info = torrent_data.get(b'info', {})
-    file_length = info.get(b'length', 0)
-    file_name = info.get(b'name', b'').decode()
-    info_bencoded = bencodepy.encode(info)
-    info_hash = hashlib.sha1(info_bencoded).hexdigest()
-    piece_length = info.get(b'piece length', 0)
-    pieces = info.get(b'pieces', b'')
-    # print({
-    #     "announce": announce,
-    #     "created_by": created_by,
-    #     "creation_date": creation_date,
-    #     "encoding": encoding,
-    #     "file_length": file_length,
-    #     "file_name": file_name,
-    #     "info_hash": info_hash,
-    #     "piece_length": piece_length,
-    #     "pieces": pieces
-    # })
-    return {
-        "announce": announce,
-        "created_by": created_by,
-        "creation_date": creation_date,
-        "encoding": encoding,
-        "file_length": file_length,
-        "file_name": file_name,
-        "info_hash": info_hash,
-        "piece_length": piece_length,
-        "pieces": pieces
-    }
-
-# Function to parse response from tracker
-def parse_response(content):
-    return content.get('peers')
-
-# Function to send request to tracker
-def send_request_to_tracker(announce, info_hash, file_length, piece_length, port):
-    # Các tham số gửi lên tracker
-    params = {
-        "info_hash": info_hash,
-        "peer_id": "-UT360S-7p1....A3D9F0",
-        "peer_ip": get_host_default_interface_ip(),
-        "port": port,
-        "uploaded": 0,
-        "downloaded": 8,
-        "left": math.ceil(file_length / piece_length),
-        "compact": 0,
-        "event": "started"
-    }
-    try:
-        response = requests.get(announce, params=params, timeout=10)
-        if response.status_code == 200:
-            print(f"✅")
-            decoded = bencodepy.decode(response.content)
-            if params['compact'] == 1:
-                print(decoded[b'peers'].hex())
-            else:
-                print(decoded[b'peers'])
-            return decoded  # Trả về dữ liệu dạng binary
-        else:
-            print(f"⚠️ Tracker request failed with status {response.status_code}")
-            return None
-    except requests.RequestException as e:
-        print(f"❌ Error connecting to tracker: {e}")
-        return None
-
-def new_server_incoming(addr, conn):
-    print(addr)
-
-def new_connection(addr, conn):
-    print(conn)
-
-#########################################
-# Thread Server
-#########################################
-def thread_server(host, port):
-    print("Thread server listening on: {}:{}".format(host, port))
-
-    serversocket = socket.socket()
-    serversocket.bind((host, port))
-
-    serversocket.listen(10)
-    while True:
-        addr, conn = serversocket.accept()
-        nconn = Thread(target=new_server_incoming, args=(addr, conn))
-        nconn.start()
-#########################################
-# Thread Client
-#########################################
-
-def thread_client(id, serverip, serverport, peerip, peerport):
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((serverip, serverport))
-    client_socket.sendall("Hehe".encode('utf-8'))
-    print('Thread ID {:d} connecting to {}:{:d}'.format(id, serverip, serverport))
+# Parse torrent file
+torrent_info = parsers.parse_torrent("./Acer_Wallpaper_03_5000x2814.jpg.torrent")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
+    args_parser = argparse.ArgumentParser(
         prog='node',
         description='Node connect to predeclared server',
         epilog='<-- !! It requires the server is running and listening !!!'
     )
+    args_parser.add_argument('--server-port', required=True)
+    args = args_parser.parse_args()
 
-    parser.add_argument('--server-port', required=True)
-    torrent_info = parse_torrent("./Acer_Wallpaper_03_5000x2814.jpg.torrent")
-    data_response = send_request_to_tracker(
-        'http://192.168.1.105:22236',
+    data_response = client.send_request_to_tracker(
+        'http://10.0.239.2:22236',
+        # 'http://192.168.1.105:22236',
         torrent_info['info_hash'],
         torrent_info['file_length'],
         torrent_info['piece_length'],
-        int(parser.parse_args().server_port)
+        int(args.server_port),
+        peerid,
+        peerip
     )
-    # list_response = parse_response(data_response)
+    peers = parsers.parse_response(data_response)
 
-    # parser.add_argument('--agent-path')
+    
+    if peers:
+        print(str(peers[0][b'ip']) + " " + str(peers[0][b'port']))
+        tclient = Thread(
+            target=client.thread_client,
+            args=(1, peers[0][b'ip'], peers[0][b'port'], torrent_info, peerid),
+        )
+        tclient.start()
+        tclient.join()
 
-    args = parser.parse_args()
-    # serverip = args.server_ip
-    serverport = args.server_port
-    # #agentpath = args.agent_path
-    #
-    peerip = get_host_default_interface_ip()
-    # peerport = 33357
-    #
-    tserver = Thread(target=thread_server, args=(peerip, serverport))
-    # tclient = Thread(
-    #     target=thread_client,
-    #    args=(1, serverip, serverport, peerip, peerport)
-    # )
-    # #tagent = Thread(target=thread_agent, args=(2, agentpath))
-    #
+    # For server running
+    serverport = int(args.server_port)
+    tserver = Thread(target=server.thread_server, args=(peerip, serverport))
     tserver.start()
-    # tclient.start()
-    # tclient.join()
-    #tagent.start()
-
-    # Never completed
     tserver.join()
