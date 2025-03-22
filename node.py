@@ -9,6 +9,10 @@ import binascii
 import requests
 from requests import PreparedRequest
 from threading import Thread
+import math
+
+SERVER1_PORT = 33357
+SERVER2_PORT = 33358
 
 def get_host_default_interface_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -54,6 +58,17 @@ def parse_torrent(file_path):
     info_hash = hashlib.sha1(info_bencoded).hexdigest()
     piece_length = info.get(b'piece length', 0)
     pieces = info.get(b'pieces', b'')
+    # print({
+    #     "announce": announce,
+    #     "created_by": created_by,
+    #     "creation_date": creation_date,
+    #     "encoding": encoding,
+    #     "file_length": file_length,
+    #     "file_name": file_name,
+    #     "info_hash": info_hash,
+    #     "piece_length": piece_length,
+    #     "pieces": pieces
+    # })
     return {
         "announce": announce,
         "created_by": created_by,
@@ -71,29 +86,29 @@ def parse_response(content):
     return content.get('peers')
 
 # Function to send request to tracker
-def send_request_to_tracker(announce, info_hash, piece_length):
+def send_request_to_tracker(announce, info_hash, file_length, piece_length, port):
     # Các tham số gửi lên tracker
     params = {
         "info_hash": info_hash,
         "peer_id": "-UT360S-7p1....A3D9F0",
         "peer_ip": get_host_default_interface_ip(),
-        "port": 6881,
+        "port": port,
         "uploaded": 0,
-        "downloaded": 0,
-        "left": piece_length,
-        "compact": 1,
+        "downloaded": 8,
+        "left": math.ceil(file_length / piece_length),
+        "compact": 0,
         "event": "started"
     }
     try:
-        # Gửi request GET đến tracker với các tham số
         response = requests.get(announce, params=params, timeout=10)
-        print(response)
-        print(response.content)
-        print(bencodepy.decode(response.content))
-        # Kiểm tra nếu request thành công
         if response.status_code == 200:
-            print(f"✅ Tracker Response Received:\n{response.text}")
-            return response.content  # Trả về dữ liệu dạng binary
+            print(f"✅")
+            decoded = bencodepy.decode(response.content)
+            if params['compact'] == 1:
+                print(decoded[b'peers'].hex())
+            else:
+                print(decoded[b'peers'])
+            return decoded  # Trả về dữ liệu dạng binary
         else:
             print(f"⚠️ Tracker request failed with status {response.status_code}")
             return None
@@ -138,33 +153,38 @@ if __name__ == "__main__":
         epilog='<-- !! It requires the server is running and listening !!!'
     )
 
-    parser.add_argument('--server-ip')
-    parser.add_argument('--server-port', type=int)
-    torrent_info = parse_torrent("C:/Users/ADMIN/Pictures/Acer/Acer_Wallpaper_03_5000x2814.jpg.torrent")
-    data_response = send_request_to_tracker('http://192.168.31.147:22236', torrent_info['info_hash'], torrent_info['piece_length'])
+    parser.add_argument('--server-port', required=True)
+    torrent_info = parse_torrent("./Acer_Wallpaper_03_5000x2814.jpg.torrent")
+    data_response = send_request_to_tracker(
+        'http://192.168.1.105:22236',
+        torrent_info['info_hash'],
+        torrent_info['file_length'],
+        torrent_info['piece_length'],
+        int(parser.parse_args().server_port)
+    )
     # list_response = parse_response(data_response)
 
     # parser.add_argument('--agent-path')
 
-    # args = parser.parse_args()
+    args = parser.parse_args()
     # serverip = args.server_ip
-    # serverport = args.server_port
+    serverport = args.server_port
     # #agentpath = args.agent_path
     #
-    # peerip = get_host_default_interface_ip()
+    peerip = get_host_default_interface_ip()
     # peerport = 33357
     #
-    # #tserver = Thread(target=thread_server, args=(peerip, 33357))
+    tserver = Thread(target=thread_server, args=(peerip, serverport))
     # tclient = Thread(
     #     target=thread_client,
-    #     args=(1, serverip, serverport, peerip, peerport)
+    #    args=(1, serverip, serverport, peerip, peerport)
     # )
     # #tagent = Thread(target=thread_agent, args=(2, agentpath))
     #
-    # #tserver.start()
+    tserver.start()
     # tclient.start()
     # tclient.join()
     #tagent.start()
 
     # Never completed
-    #tserver.join()
+    tserver.join()

@@ -8,7 +8,7 @@ import requests
 # In-memory data structures
 peers = [] # {peer_id: {"ip": str, "port": int, "files": [file_hashes]}}
 files = {}  # {file_hash: {"piece_count": int, "nodes": [peer_ids]}}
-#tracker_id = str(uuid.uuid4())  # Unique tracker ID
+tracker_id = "hehehehehehehehehehe"  # Unique tracker ID
 
 def new_connection(addr, conn):
     print(addr)
@@ -19,12 +19,14 @@ def new_connection(addr, conn):
 
             # Lấy dòng đầu tiên (Request Line)
             request_line = lines[0]
+            print(request_line)
             method, path, http_version = request_line.split(" ")
 
             # Phân tích URL để lấy query parameters
             parsed_url = urlparse(path)
             query_params = parse_qs(parsed_url.query)
-
+            
+            if() # TODO: Check if a peer is in list
             # Create new peer
             peer_id = query_params['peer_id'][0]
             peer_ip = query_params['peer_ip'][0]
