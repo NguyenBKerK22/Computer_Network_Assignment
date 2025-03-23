@@ -26,7 +26,7 @@ def thread_server(host, port):
 # NEW SERVER INCOMING
 #########################################
 def new_message_incoming(addr, conn):
-    # Handshake
+    # Receive Handshake
     print(conn)
     handshake = conn.recv(constant.NUM_BYTE_HANDSHAKE)
     if not handshake:
@@ -43,40 +43,23 @@ def new_message_incoming(addr, conn):
     print(f"info_hash: {recv_message['info_hash']}")
     print(f"peer_id: {recv_message['peer_id']}")
 
-    def handle_handshake(conn, handshake, addr):
-        # Parse handshake
-        pstrlen = handshake[0]
-        pstr = handshake[1:1 + pstrlen].decode()
-        reserved = handshake[1 + pstrlen:9 + pstrlen]
-        info_hash = handshake[9 + pstrlen:29 + pstrlen]
-        peer_id = handshake[29 + pstrlen:].decode()
-
-        print(f"Received handshake from {addr}")
-        print(f"pstrlen: {pstrlen}")
-        print(f"pstr: {pstr}")
-        print(f"info_hash: {binascii.hexlify(info_hash).decode()}")
-        print(f"peer_id: {peer_id}")
-
-        # Verify info_hash
-        torrent_info = parsers.parse_torrent("./Acer_Wallpaper_03_5000x2814.jpg.torrent")
-        if recv_message['info_hash'] != torrent_info['info_hash']:
-            print("compare info_hash fail")
-            print(f"Incorrect info_hash from {addr}")
-            conn.close()
-            return False
-
-        # Send handshake back
-        response_handshake = b''
-        response_handshake += bytes([19])
-        response_handshake += b'BitTorrent protocol'
-        response_handshake += b'\x00' * 8
-        response_handshake += binascii.unhexlify(torrent_info['info_hash'])
-        response_handshake += node_info.PeerId.encode('utf-8')
-        conn.send(response_handshake)
-        return True
-
-    if not handle_handshake(conn, handshake, addr):
+    # Compare info_hash
+    torrent_info = parsers.parse_torrent("./Acer_Wallpaper_03_5000x2814.jpg.torrent")
+    if recv_message['info_hash'] != torrent_info['info_hash']:
+        print("compare info_hash fail")
+        print(f"Incorrect info_hash from {addr}")
+        conn.close()
         return
+
+    # Send handshake back
+    response_handshake = b''
+    response_handshake += bytes([19])
+    response_handshake += b'BitTorrent protocol'
+    response_handshake += b'\x00' * 8
+    response_handshake += binascii.unhexlify(torrent_info['info_hash'])
+    response_handshake += node_info.PeerId.encode('utf-8')
+    conn.send(response_handshake)
+    print(f"Sent response handshake to {addr}")
 
     # Initialize connection state
     am_interested = False
