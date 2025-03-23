@@ -6,3 +6,4 @@ def renew_peer_id():
     return PeerId
 
 PeerId = renew_peer_id()
+file_pieces = []

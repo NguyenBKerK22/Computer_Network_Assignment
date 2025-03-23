@@ -40,9 +40,29 @@ def construct_have_message(piece_index):
     length = (1 + len(payload)).to_bytes(4, 'big')
     return length + b'\x04' + payload
 
-def construct_bitfield_message(bitfield): # bitfield is a bytes object, bitmap of pieces
+def construct_bitfield_message(file_pieces):  # bitfield is a bytes object, bitmap of pieces
+    if len(file_pieces) == 0:
+        return b''
+
+    bitfield = b''
+    for i in range(0, len(file_pieces), 8):
+        byte = 0
+        for j in range(8):
+            if i + j < len(file_pieces) and file_pieces[i + j] == 1:
+                byte |= 1 << (7 - j)
+        bitfield += byte.to_bytes(1, 'big')
     length = (1 + len(bitfield)).to_bytes(4, 'big')
     return length + b'\x05' + bitfield
+
+def revert_bitfield_message(bitfield_bytes, total_pieces=None):
+    # If total_pieces is provided, only that many bits will be returned.
+    bits = []
+    for byte in bitfield_bytes:
+        for shift in range(7, -1, -1):
+            bits.append((byte >> shift) & 1)
+    if total_pieces is not None:
+        bits = bits[:total_pieces]
+    return bits
 
 def construct_request_message(index, begin, length):
     payload = index.to_bytes(4, 'big') + begin.to_bytes(4, 'big') + length.to_bytes(4, 'big')
@@ -76,6 +96,11 @@ def handle_message(message_type, payload):
         piece_index = int.from_bytes(payload, 'big')
         print(f"Peer has piece {piece_index}")
     elif message_type[0] == 5:  # Bitfield (server -> client)
+        recv_file_pieces = revert_bitfield_message(payload)
+        # compare with file_pieces
+        diff_indexes = [i for i, (local, peer) in enumerate(zip(node_info.file_pieces, recv_file_pieces)) if local == 0 and peer == 1]
+        if diff_indexes:
+            print("New pieces available at indexes:", diff_indexes)
         print(f"Peer bitfield: {binascii.hexlify(payload).decode()}")
     elif message_type[0] == 6:  # Request (client -> server)
         index = int.from_bytes(payload[:4], 'big')
