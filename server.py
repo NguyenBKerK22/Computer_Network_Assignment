@@ -82,6 +82,28 @@ def new_message_incoming(addr, conn):
     peer_interested = False
     peer_choking = True
 
+    while (1):
+        message_length_bytes = conn.recv(4)
+        if not message_length_bytes:
+            print(f"Connection closed by server {addr}")
+            return
+        message_length = int.from_bytes(message_length_bytes, 'big')
+        if message_length == 0:
+            print(f"Received keep-alive from server {addr}")
+            continue
+        # receive message type
+        message_type = conn.recv(1)
+        if not message_type:
+            print(f"Connection closed by server {addr}")
+            break
+        # receive payload
+        if message_length > 1:
+            payload = conn.recv(message_length - 1)
+        else:
+            payload = b''
+
+        handshake.server_handle_message(message_type, payload, conn)
+
     # Send choke message (initial state)
     # choke_message = b'\x00\x00\x00\x01\x00'
     # conn.sendall(choke_message)

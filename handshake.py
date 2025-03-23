@@ -1,6 +1,11 @@
 import binascii
 import utils
 import node_info
+import constant
+
+diff_indexes = []
+index = 0
+
 def create_handshake_message(info_hash):
     handshake = b''
     handshake += bytes([19])
@@ -71,7 +76,6 @@ def client_handle_message(socket, message_type, payload):
     global index
     if message_type[0] == 0:  # Choke
         peer_choking = True
-        print(f"Peer choked us")
     elif message_type[0] == 1:  # Unchoke
         peer_choking = False
         print(f"Peer unchoked us")
@@ -81,9 +85,6 @@ def client_handle_message(socket, message_type, payload):
     elif message_type[0] == 3:  # Not Interested
         peer_interested = False
         print(f"Peer is not interested")
-    elif message_type[0] == 4:  # Have (client -> server)
-        piece_index = int.from_bytes(payload, 'big')
-        print(f"Peer has piece {piece_index}")
     elif message_type[0] == 5:  # Bitfield (server -> client)
         recv_file_pieces = revert_bitfield_message(payload)
         # compare with file_pieces
@@ -103,10 +104,7 @@ def client_handle_message(socket, message_type, payload):
         index_response = int.from_bytes(payload[:4], 'big')
         length = int.from_bytes(payload[4:8], 'big')
         block = payload[8:]
-        print(f"Received block: index={index}, begin={begin}, length={len(block)}")
-    elif message_type[0] == 8:  # Cancel
-        utils.insert_piece_to_file(filename="C:/Users/ADMIN/Pictures/Acer/hehe.jpg", piece_index=index_response,
-                                   piece_data=block)
+        utils.insert_piece_to_file(filename= "C:/Users/ADMIN/Pictures/Acer/hehe.jpg", piece_index = index_response, piece_data= block)
         if index != len(diff_indexes):
             index = index + 1
             begin = 0
@@ -114,7 +112,6 @@ def client_handle_message(socket, message_type, payload):
             request_msg = construct_request_message(index_response, begin, block_length)
             socket.sendall(request_msg)
             print(f"Sent request XXXX for piece {index} (offset {begin}, length {block_length})")
-
 def server_handle_message(message_type, payload, conn):
     if message_type[0] == 0:  # Choke
         peer_choking = True
