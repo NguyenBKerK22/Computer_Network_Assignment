@@ -17,9 +17,9 @@ peerid = node_info.PeerId
 print(f"Peer ID: {peerid}")
 
 # Parse torrent file
-torrent_info = parsers.parse_torrent("C:/Users/ADMIN/Pictures/Acer/Acer_Wallpaper_02_5000x2813.jpg.torrent")
+torrent_info = parsers.parse_torrent("C:/Users/ADMIN/Documents/Zalo Received Files/Acer_Wallpaper_02_5000x2813.jpg.torrent")
 print(torrent_info)
-node_info.file_pieces = [1] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"])
+node_info.file_pieces = [0] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"])
 print(node_info.file_pieces)
 constant.PIECE_SIZE = torrent_info['piece_length']
 if __name__ == "__main__":
