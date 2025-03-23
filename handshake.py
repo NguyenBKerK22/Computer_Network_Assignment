@@ -14,6 +14,7 @@ import uuid
 import parsers
 import utils
 import node_info
+import constant
 def create_handshake_message(info_hash):
     handshake = b''
     handshake += bytes([19])
@@ -69,8 +70,8 @@ def construct_request_message(index, begin, length):
     length_bytes = (1 + len(payload)).to_bytes(4, 'big')
     return length_bytes + b'\x06' + payload
 
-def construct_block_message(index, begin, block):
-    payload = index.to_bytes(4, 'big') + begin.to_bytes(4, 'big') + block
+def construct_block_message(index, length, block):
+    payload = index.to_bytes(4, 'big') + length.to_bytes(4, 'big') + block
     length_bytes = (1 + len(payload)).to_bytes(4, 'big')
     return length_bytes + b'\x07' + payload
 
@@ -117,3 +118,38 @@ def handle_message(message_type, payload):
         begin = int.from_bytes(payload[4:8], 'big')
         length = int.from_bytes(payload[8:], 'big')
         print(f"Received cancel: index={index}, begin={begin}, length={length}")
+
+def server_handle_message(message_type, payload, conn):
+    if message_type[0] == 0:  # Choke
+        peer_choking = True
+        print(f"Peer choked us")
+    elif message_type[0] == 1:  # Unchoke
+        peer_choking = False
+        print(f"Peer unchoked us")
+    elif message_type[0] == 2:  # Interested
+        peer_interested = True
+        print(f"Peer is interested")
+    elif message_type[0] == 3:  # Not Interested
+        peer_interested = False
+        print(f"Peer is not interested")
+    elif message_type[0] == 4:  # Have (client -> server)
+        piece_index = int.from_bytes(payload, 'big')
+        print(f"[HAVE]")
+    elif message_type[0] == 6:  # Request (client -> server)
+        index = int.from_bytes(payload[:4], 'big')
+        begin = int.from_bytes(payload[4:8], 'big')
+        length = int.from_bytes(payload[8:], 'big')
+        # read file from index * PIECE_SIZE to index * PIECE_SIZE + length
+        with open(node_info.file_path, 'rb') as f:
+            f.seek(index * constant.PIECE_SIZE + begin)
+            block = f.read(length)
+
+        block_message = construct_block_message(index, len(block), block)
+        conn.sendall(block_message)
+        f.close()
+        print(f"[REQUEST]")
+    elif message_type[0] == 8:  # Cancel (client -> server)
+        index = int.from_bytes(payload[:4], 'big')
+        begin = int.from_bytes(payload[4:8], 'big')
+        length = int.from_bytes(payload[8:], 'big')
+        print(f"[CANCEL]")

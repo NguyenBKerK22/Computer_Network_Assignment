@@ -49,7 +49,7 @@ def new_message_incoming(addr, conn):
     print(f"peer_id: {recv_message['peer_id']}")
 
     # Compare info_hash
-    torrent_info = parsers.parse_torrent("C:/Users/ADMIN/Pictures/Acer/Acer_Wallpaper_02_5000x2813.jpg.torrent")
+    torrent_info = parsers.parse_torrent("./Acer_Wallpaper_02_5000x2813.jpg.torrent")
     print(recv_message['info_hash'])
     print(torrent_info['info_hash'])
     if recv_message['info_hash'].hex() != torrent_info['info_hash']:
@@ -81,6 +81,28 @@ def new_message_incoming(addr, conn):
     am_choking = True
     peer_interested = False
     peer_choking = True
+
+    while(1):
+        message_length_bytes = conn.recv(4)
+        if not message_length_bytes:
+            print(f"Connection closed by server {addr}")
+            return
+        message_length = int.from_bytes(message_length_bytes, 'big')
+        if message_length == 0:
+            print(f"Received keep-alive from server {addr}")
+            continue
+        # receive message type
+        message_type = conn.recv(1)
+        if not message_type:
+            print(f"Connection closed by server {addr}")
+            break
+        # receive payload
+        if message_length > 1:
+            payload = conn.recv(message_length - 1)
+        else:
+            payload = b''
+
+        handshake.server_handle_message(message_type, payload, conn)
 
     # Send choke message (initial state)
     # choke_message = b'\x00\x00\x00\x01\x00'
