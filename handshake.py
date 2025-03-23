@@ -80,10 +80,11 @@ def construct_cancel_message(index, begin, length):
     length_bytes = (1 + len(payload)).to_bytes(4, 'big')
     return length_bytes + b'\x08' + payload
 
-def handle_message(message_type, payload):
+def client_handle_message(socket, message_type, payload):
+    global diff_indexes
+    global index
     if message_type[0] == 0:  # Choke
         peer_choking = True
-        print(f"Peer choked us")
     elif message_type[0] == 1:  # Unchoke
         peer_choking = False
         print(f"Peer unchoked us")
@@ -93,31 +94,33 @@ def handle_message(message_type, payload):
     elif message_type[0] == 3:  # Not Interested
         peer_interested = False
         print(f"Peer is not interested")
-    elif message_type[0] == 4:  # Have (client -> server)
-        piece_index = int.from_bytes(payload, 'big')
-        print(f"Peer has piece {piece_index}")
     elif message_type[0] == 5:  # Bitfield (server -> client)
         recv_file_pieces = revert_bitfield_message(payload)
         # compare with file_pieces
         diff_indexes = [i for i, (local, peer) in enumerate(zip(node_info.file_pieces, recv_file_pieces)) if local == 0 and peer == 1]
-        if diff_indexes:
-            print("New pieces available at indexes:", diff_indexes)
-        print(f"Peer bitfield: {binascii.hexlify(payload).decode()}")
-    elif message_type[0] == 6:  # Request (client -> server)
-        index = int.from_bytes(payload[:4], 'big')
-        begin = int.from_bytes(payload[4:8], 'big')
-        length = int.from_bytes(payload[8:], 'big')
-        print(f"Received request: index={index}, begin={begin}, length={length}")
+        # For example, request the first block of the piece:
+        begin = 0
+        block_length = 16384  # e.g., 16384 bytes (16KB)
+        print(diff_indexes)
+        if diff_indexes is not None:
+            request_msg = construct_request_message(diff_indexes[index], begin, block_length)
+            socket.sendall(request_msg)
+            index = index + 1
+        print(f"Sent request for piece {index} (offset {begin}, length {block_length})")
+
     elif message_type[0] == 7:  # block (server -> client)
-        index = int.from_bytes(payload[:4], 'big')
-        begin = int.from_bytes(payload[4:8], 'big')
+        print("receive block")
+        index_response = int.from_bytes(payload[:4], 'big')
+        length = int.from_bytes(payload[4:8], 'big')
         block = payload[8:]
-        print(f"Received block: index={index}, begin={begin}, length={len(block)}")
-    elif message_type[0] == 8:  # Cancel
-        index = int.from_bytes(payload[:4], 'big')
-        begin = int.from_bytes(payload[4:8], 'big')
-        length = int.from_bytes(payload[8:], 'big')
-        print(f"Received cancel: index={index}, begin={begin}, length={length}")
+        utils.insert_piece_to_file(filename= "C:/Users/ADMIN/Pictures/Acer/hehe.jpg", piece_index = index_response, piece_data= block)
+        if index != len(diff_indexes):
+            index = index + 1
+            begin = 0
+            block_length = 16384  # e.g., 16384 bytes (16KB)
+            request_msg = construct_request_message(index, begin, block_length)
+            socket.sendall(request_msg)
+            print(f"Sent request XXXX for piece {index} (offset {begin}, length {block_length})")
 
 def server_handle_message(message_type, payload, conn):
     if message_type[0] == 0:  # Choke

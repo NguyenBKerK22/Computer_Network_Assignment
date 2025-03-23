@@ -52,62 +52,27 @@ def thread_client(id, serverip, serverport, torrent_info):
         print("No handshake back received. Check for your info_hash")
         client_socket.close()
         return
-    print(parsers.parse_handshack_message(handshake_back))
+    # print(parsers.parse_handshack_message(handshake_back))
     while True:
-        if state == 1:
-            # recv message length
-            message_length_bytes = client_socket.recv(4)
-            if not message_length_bytes:
-                print(f"Connection closed by server {serverip}")
-                return
-            message_length = int.from_bytes(message_length_bytes, 'big')
-            if message_length == 0:
-                print(f"Received keep-alive from server {serverip}")
-                continue
-            # receive message type
-            message_type = client_socket.recv(1)
-            if not message_type:
-                print(f"Connection closed by server {serverip}")
-                break
-            # receive payload
-            if message_length > 1:
-                payload = client_socket.recv(message_length - 1)
-            else:
-                payload = b''
-            piecess = handshake.revert_bitfield_message(payload)
-            state = 2
-        elif state == 2:
-            # State Send Request
-            for index, has_piece in enumerate(piecess):
-                if has_piece == 1:
-                    # For example, request the first block of the piece:
-                    begin = 0
-                    block_length = 16384 # e.g., 16384 bytes (16KB)
-                    request_msg = handshake.construct_request_message(index, begin, block_length)
-                    client_socket.sendall(request_msg)
-                    print(f"Sent request for piece {index} (offset {begin}, length {block_length})")
-                    state = 3
+        message_length_bytes = client_socket.recv(4)
+        if not message_length_bytes:
+            print(f"Connection closed by server {serverip}")
+            return
+        message_length = int.from_bytes(message_length_bytes, 'big')
+        if message_length == 0:
+            print(f"Received keep-alive from server {serverip}")
+            continue
+        # receive message type
+        message_type = client_socket.recv(1)
+        if not message_type:
+            print(f"Connection closed by server {serverip}")
             break
-        elif state == 3:
-            message_length_bytes = client_socket.recv(4)
-            if not message_length_bytes:
-                print(f"Connection closed by server {serverip}")
-                return
-            message_length = int.from_bytes(message_length_bytes, 'big')
-            if message_length == 0:
-                print(f"Received keep-alive from server {serverip}")
-                continue
-            # receive message type
-            message_type = client_socket.recv(1)
-            if not message_type:
-                print(f"Connection closed by server {serverip}")
-                break
-            # receive payload
-            if message_length > 1:
-                payload = client_socket.recv(message_length - 1)
-            else:
-                payload = b''
-            break
+        # receive payload
+        if message_length > 1:
+            payload = client_socket.recv(message_length - 1)
+        else:
+            payload = b''
+        handshake.client_handle_message(client_socket, message_type, payload)
         # print(f"Received message from {serverip}:{serverport}: length={message_length}, id={message_type[0]}")
 
         
