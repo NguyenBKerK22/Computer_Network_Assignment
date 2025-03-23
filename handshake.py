@@ -92,8 +92,8 @@ def client_handle_message(socket, message_type, payload):
         # For example, request the first block of the piece:
         begin = 0
         block_length = 16384  # e.g., 16384 bytes (16KB)
-        print(diff_indexes)
-        if diff_indexes is not None:
+        print(f"hihihihihi: {diff_indexes}")
+        if diff_indexes:
             request_msg = construct_request_message(diff_indexes[index], begin, block_length)
             socket.sendall(request_msg)
             index = index + 1
@@ -104,14 +104,15 @@ def client_handle_message(socket, message_type, payload):
         index_response = int.from_bytes(payload[:4], 'big')
         length = int.from_bytes(payload[4:8], 'big')
         block = payload[8:]
-        utils.insert_piece_to_file(filename= "C:/Users/ADMIN/Pictures/Acer/hehe.jpg", piece_index = index_response, piece_data= block)
+        utils.insert_piece_to_file(filename= "./hehe.jpg", piece_index = index_response, piece_data= block)
         if index != len(diff_indexes):
-            index = index + 1
             begin = 0
             block_length = 16384  # e.g., 16384 bytes (16KB)
-            request_msg = construct_request_message(index_response, begin, block_length)
+            request_msg = construct_request_message(diff_indexes[index], begin, block_length)
+            index = index + 1
             socket.sendall(request_msg)
             print(f"Sent request XXXX for piece {index} (offset {begin}, length {block_length})")
+
 def server_handle_message(message_type, payload, conn):
     if message_type[0] == 0:  # Choke
         peer_choking = True

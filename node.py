@@ -33,8 +33,8 @@ if __name__ == "__main__":
 
     data_response = client.send_request_to_tracker(
         #'http://192.168.31.147:22236',
-        'http://10.0.129.135:22236',
-        # 'http://192.168.1.105:22236',
+        # 'http://10.0.129.135:22236',
+        'http://192.168.1.106:22236',
         torrent_info['info_hash'],
         torrent_info['file_length'],
         torrent_info['piece_length'],
