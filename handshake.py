@@ -13,14 +13,14 @@ import math
 import uuid
 import parsers
 import utils
-
-def create_handshake_message(info_hash, peer_id):
+import node_info
+def create_handshake_message(info_hash):
     handshake = b''
     handshake += bytes([19])
     handshake += b'BitTorrent protocol'
     handshake += b'\x00' * 8
     handshake += binascii.unhexlify(info_hash)
-    handshake += peer_id.encode('utf-8')
+    handshake += node_info.PeerId.encode('utf-8')
     return handshake
 
 def construct_choke_message():

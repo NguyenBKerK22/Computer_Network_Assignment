@@ -45,3 +45,17 @@ def parse_torrent(file_path):
     }
 def parse_response(content):
     return content[b'peers']
+
+def parse_handshack_message(message):
+    recv_pstrlen = message[0]
+    recv_pstr = message[1:1 + recv_pstrlen].decode()
+    recv_reserved = message[1 + recv_pstrlen:9 + recv_pstrlen]
+    recv_info_hash = message[9 + recv_pstrlen:29 + recv_pstrlen]
+    recv_peer_id = message[29 + recv_pstrlen:].decode()
+    return {
+        "pstrlen": recv_pstrlen,
+        "pstr": recv_pstr,
+        "reserved": recv_reserved,
+        "info_hash": recv_info_hash,
+        "peer_id": recv_peer_id
+    }

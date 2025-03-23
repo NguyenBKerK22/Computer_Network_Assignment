@@ -15,10 +15,11 @@ import parsers
 import utils
 import client
 import server
+import node_info
 
 # Create peer infomation
 peerip = utils.get_host_default_interface_ip()
-peerid = utils.generate_20_byte_peer_id()
+peerid = node_info.PeerId
 print(f"Peer ID: {peerid}")
 
 # Parse torrent file
@@ -50,7 +51,7 @@ if __name__ == "__main__":
         print(str(peers[0][b'ip']) + " " + str(peers[0][b'port']))
         tclient = Thread(
             target=client.thread_client,
-            args=(1, peers[0][b'ip'], peers[0][b'port'], torrent_info, peerid),
+            args=(1, peers[0][b'ip'], peers[0][b'port'], torrent_info),
         )
         tclient.start()
         tclient.join()

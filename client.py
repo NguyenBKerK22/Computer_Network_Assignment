@@ -3,6 +3,8 @@ import math
 import bencodepy
 import requests
 import socket
+import node_info
+import constant
 # Function to send request to tracker
 
 def send_request_to_tracker(announce, info_hash, file_length, piece_length, port, peerid, peerip):
@@ -36,9 +38,12 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
         print(f"❌ Error connecting to tracker: {e}")
         return None
 
-def thread_client(id, serverip, serverport, torrent_info, peerid):
+def thread_client(id, serverip, serverport, torrent_info):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((serverip, serverport))
 
-    client_socket.sendall(handshake.create_handshake_message(torrent_info['info_hash'], peerid))
+    client_socket.sendall(handshake.create_handshake_message(torrent_info['info_hash']))
+    client_socket.recv(constant.HANDSHAKE_MESSAGE_LENGTH)
+
+    
     print('Thread ID {:d} connecting to {}:{:d}'.format(id, serverip, serverport))

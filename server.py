@@ -4,6 +4,7 @@ import socket
 import constant
 import time
 import parsers
+import node_info
 #########################################
 # Thread Server
 #########################################
@@ -17,14 +18,14 @@ def thread_server(host, port):
     while True:
         conn, addr = serversocket.accept()
         print("Incoming connection from: {}".format(addr))
-        nconn = Thread(target=new_server_incoming, args=(addr, conn))
+        nconn = Thread(target=new_message_incoming, args=(addr, conn))
         nconn.start()
         nconn.join()
 
 #########################################
 # NEW SERVER INCOMING
 #########################################
-def new_server_incoming(addr, conn):
+def new_message_incoming(addr, conn):
     # Handshake
     print(conn)
     handshake = conn.recv(constant.NUM_BYTE_HANDSHAKE)
@@ -34,17 +35,13 @@ def new_server_incoming(addr, conn):
         return
 
     # Parse handshake
-    pstrlen = handshake[0]
-    pstr = handshake[1:1 + pstrlen].decode()
-    reserved = handshake[1 + pstrlen:9 + pstrlen]
-    info_hash = handshake[9 + pstrlen:29 + pstrlen]
-    peer_id = handshake[29 + pstrlen:].decode()
+    recv_message = parsers.parse_handshack_message(handshake)
 
     print(f"Received handshake from {addr}")
-    print(f"pstrlen: {pstrlen}")
-    print(f"pstr: {pstr}")
-    print(f"info_hash: {binascii.hexlify(info_hash).decode()}")
-    print(f"peer_id: {peer_id}")
+    print(f"pstrlen: {recv_message['pstrlen']}")
+    print(f"pstr: {recv_message['pstr']}")
+    print(f"info_hash: {recv_message['info_hash']}")
+    print(f"peer_id: {recv_message['peer_id']}")
 
     def handle_handshake(conn, handshake, addr):
         # Parse handshake
@@ -62,8 +59,8 @@ def new_server_incoming(addr, conn):
 
         # Verify info_hash
         torrent_info = parsers.parse_torrent("./Acer_Wallpaper_03_5000x2814.jpg.torrent")
-        if info_hash != torrent_info['info_hash']:
-            print("compare info_hash")
+        if recv_message['info_hash'] != torrent_info['info_hash']:
+            print("compare info_hash fail")
             print(f"Incorrect info_hash from {addr}")
             conn.close()
             return False
@@ -74,7 +71,7 @@ def new_server_incoming(addr, conn):
         response_handshake += b'BitTorrent protocol'
         response_handshake += b'\x00' * 8
         response_handshake += binascii.unhexlify(torrent_info['info_hash'])
-        response_handshake += b'-UT360S-7p1....A3D9F0'  # Use the same peer_id as in tracker request
+        response_handshake += node_info.PeerId.encode('utf-8')
         conn.send(response_handshake)
         return True
 
