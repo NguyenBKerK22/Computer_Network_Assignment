@@ -1,13 +1,6 @@
 import socket
 import time
 import argparse
-import mmap
-from urllib.parse import urlparse, parse_qs
-import bencodepy
-import hashlib
-import binascii
-import requests
-from requests import PreparedRequest
 from threading import Thread
 import math
 import uuid
@@ -35,14 +28,16 @@ if __name__ == "__main__":
     args = args_parser.parse_args()
 
     data_response = client.send_request_to_tracker(
-        'http://10.0.239.2:22236',
+        'http://192.168.31.147:22236',
+        #'http://10.0.239.2:22236',
         # 'http://192.168.1.105:22236',
         torrent_info['info_hash'],
         torrent_info['file_length'],
         torrent_info['piece_length'],
         int(args.server_port),
         peerid,
-        peerip
+        peerip,
+        "started"
     )
     peers = parsers.parse_response(data_response)
 
