@@ -22,7 +22,6 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
         "compact": 0,
         "event": event
     }
-    print(peerip)
     try:
         response = requests.get(announce, params=params, timeout=10)
         if response.status_code == 200:
@@ -42,7 +41,7 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
 
 def thread_client(id, serverip, serverport, torrent_info):
     state = 1
-    piecess = []
+    list_piece_data = []
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((serverip, serverport))
 
@@ -52,8 +51,8 @@ def thread_client(id, serverip, serverport, torrent_info):
         print("No handshake back received. Check for your info_hash")
         client_socket.close()
         return
-    # print(parsers.parse_handshack_message(handshake_back))
     while True:
+        # recv message length
         message_length_bytes = client_socket.recv(4)
         if not message_length_bytes:
             print(f"Connection closed by server {serverip}")
@@ -72,8 +71,7 @@ def thread_client(id, serverip, serverport, torrent_info):
             payload = client_socket.recv(message_length - 1)
         else:
             payload = b''
+            break
         handshake.client_handle_message(client_socket, message_type, payload)
-        # print(f"Received message from {serverip}:{serverport}: length={message_length}, id={message_type[0]}")
-
         
     

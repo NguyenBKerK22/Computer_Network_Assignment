@@ -82,7 +82,7 @@ def new_message_incoming(addr, conn):
     peer_interested = False
     peer_choking = True
 
-    while(1):
+    while (1):
         message_length_bytes = conn.recv(4)
         if not message_length_bytes:
             print(f"Connection closed by server {addr}")

@@ -1,20 +1,11 @@
-import socket
-import time
-import argparse
-import mmap
-from urllib.parse import urlparse, parse_qs
-import bencodepy
-import hashlib
 import binascii
-import requests
-from requests import PreparedRequest
-from threading import Thread
-import math
-import uuid
-import parsers
 import utils
 import node_info
 import constant
+
+diff_indexes = []
+index = 0
+
 def create_handshake_message(info_hash):
     handshake = b''
     handshake += bytes([19])
@@ -70,8 +61,8 @@ def construct_request_message(index, begin, length):
     length_bytes = (1 + len(payload)).to_bytes(4, 'big')
     return length_bytes + b'\x06' + payload
 
-def construct_block_message(index, length, block):
-    payload = index.to_bytes(4, 'big') + length.to_bytes(4, 'big') + block
+def construct_block_message(index, begin, block):
+    payload = index.to_bytes(4, 'big') + begin.to_bytes(4, 'big') + block
     length_bytes = (1 + len(payload)).to_bytes(4, 'big')
     return length_bytes + b'\x07' + payload
 
@@ -118,10 +109,9 @@ def client_handle_message(socket, message_type, payload):
             index = index + 1
             begin = 0
             block_length = 16384  # e.g., 16384 bytes (16KB)
-            request_msg = construct_request_message(index, begin, block_length)
+            request_msg = construct_request_message(index_response, begin, block_length)
             socket.sendall(request_msg)
             print(f"Sent request XXXX for piece {index} (offset {begin}, length {block_length})")
-
 def server_handle_message(message_type, payload, conn):
     if message_type[0] == 0:  # Choke
         peer_choking = True

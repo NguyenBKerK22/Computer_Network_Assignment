@@ -124,8 +124,8 @@ def tracker_server(host, port):
 
     serversocket.listen(10)
 
-    cleanup_thread = Thread(target=cleanup_inactive_peers, daemon=True)
-    cleanup_thread.start()
+    # cleanup_thread = Thread(target=cleanup_inactive_peers, daemon=True)
+    # cleanup_thread.start()
 
     while True:
         print("Waiting for connection...")
