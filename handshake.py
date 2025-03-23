@@ -91,7 +91,7 @@ def client_handle_message(socket, message_type, payload):
         diff_indexes = [i for i, (local, peer) in enumerate(zip(node_info.file_pieces, recv_file_pieces)) if local == 0 and peer == 1]
         # For example, request the first block of the piece:
         begin = 0
-        block_length = 16384  # e.g., 16384 bytes (16KB)
+        block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
         print(f"hihihihihi: {diff_indexes}")
         if diff_indexes:
             request_msg = construct_request_message(diff_indexes[index], begin, block_length)
@@ -107,7 +107,7 @@ def client_handle_message(socket, message_type, payload):
         utils.insert_piece_to_file(filename= "./hehe.jpg", piece_index = index_response, piece_data= block)
         if index != len(diff_indexes):
             begin = 0
-            block_length = 16384  # e.g., 16384 bytes (16KB)
+            block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
             request_msg = construct_request_message(diff_indexes[index], begin, block_length)
             index = index + 1
             socket.sendall(request_msg)
@@ -131,8 +131,10 @@ def server_handle_message(message_type, payload, conn):
         print(f"[HAVE]")
     elif message_type[0] == 6:  # Request (client -> server)
         index = int.from_bytes(payload[:4], 'big')
+        
         begin = int.from_bytes(payload[4:8], 'big')
         length = int.from_bytes(payload[8:], 'big')
+        print(f"index-length: {index} {length}")
         # read file from index * PIECE_SIZE to index * PIECE_SIZE + length
         with open(node_info.file_path, 'rb') as f:
             f.seek(index * constant.PIECE_SIZE + begin)

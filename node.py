@@ -44,7 +44,6 @@ if __name__ == "__main__":
         "started"
     )
     peers = parsers.parse_response(data_response)
-
     
     if peers:
         print(str(peers[0][b'ip']) + " " + str(peers[0][b'port']))
