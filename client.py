@@ -72,6 +72,7 @@ def thread_client(id, serverip, serverport, torrent_info):
         else:
             payload = b''
             break
+        #hihi
         handshake.client_handle_message(client_socket, message_type, payload)
         
     
