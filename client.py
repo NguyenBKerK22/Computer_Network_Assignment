@@ -5,6 +5,8 @@ import requests
 import socket
 import node_info
 import constant
+import parsers
+import utils
 # Function to send request to tracker
 
 def send_request_to_tracker(announce, info_hash, file_length, piece_length, port, peerid, peerip, event):
@@ -43,7 +45,36 @@ def thread_client(id, serverip, serverport, torrent_info):
     client_socket.connect((serverip, serverport))
 
     client_socket.sendall(handshake.create_handshake_message(torrent_info['info_hash']))
-    client_socket.recv(constant.HANDSHAKE_MESSAGE_LENGTH)
+    handshake_back = client_socket.recv(constant.NUM_BYTE_HANDSHAKE)
+    if(handshake_back == b''):
+        print("No handshake back received. Check for your info_hash")
+        client_socket.close()
+        return
+    # print(parsers.parse_handshack_message(handshake_back))
+    while True:
+        # recv message length
+        message_length_bytes = client_socket.recv(4)
+        if not message_length_bytes:
+            print(f"Connection closed by server {serverip}")
+            return
+        message_length = int.from_bytes(message_length_bytes, 'big')
 
+        if message_length == 0:
+            print(f"Received keep-alive from server {serverip}")
+            continue
+
+        # receive message type
+        message_type = client_socket.recv(1)
+        if not message_type:
+            print(f"Connection closed by server {serverip}")
+            break
+
+        # receive payload
+        if message_length > 1:
+            payload = client_socket.recv(message_length - 1)
+        else:
+            payload = b''
+        print(f"Received message from {serverip}:{serverport}: length={message_length}, id={message_type[0]}")
+
+        
     
-    print('Thread ID {:d} connecting to {}:{:d}'.format(id, serverip, serverport))

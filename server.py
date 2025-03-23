@@ -5,6 +5,7 @@ import constant
 import time
 import parsers
 import node_info
+import hashlib
 #########################################
 # Thread Server
 #########################################
@@ -45,7 +46,9 @@ def new_message_incoming(addr, conn):
 
     # Compare info_hash
     torrent_info = parsers.parse_torrent("./Acer_Wallpaper_03_5000x2814.jpg.torrent")
-    if recv_message['info_hash'] != torrent_info['info_hash']:
+    print(recv_message['info_hash'])
+    print(torrent_info['info_hash'])
+    if recv_message['info_hash'].hex() != torrent_info['info_hash']:
         print("compare info_hash fail")
         print(f"Incorrect info_hash from {addr}")
         conn.close()
@@ -58,7 +61,7 @@ def new_message_incoming(addr, conn):
     response_handshake += b'\x00' * 8
     response_handshake += binascii.unhexlify(torrent_info['info_hash'])
     response_handshake += node_info.PeerId.encode('utf-8')
-    conn.send(response_handshake)
+    conn.sendall(response_handshake)
     print(f"Sent response handshake to {addr}")
 
     # Initialize connection state
@@ -69,7 +72,7 @@ def new_message_incoming(addr, conn):
 
     # Send choke message (initial state)
     choke_message = b'\x00\x00\x00\x01\x00'
-    conn.send(choke_message)
+    conn.sendall(choke_message)
 
     # TODO: Update am_interested status based on application logic
     # TODO: Communicate am_interested status to peer
@@ -80,7 +83,7 @@ def new_message_incoming(addr, conn):
             while True:
                 time.sleep(120)
                 try:
-                    conn.send(b'\x00\x00\x00\x00')  # Keep-alive message
+                    conn.sendall(b'\x00\x00\x00\x00')  # Keep-alive message
                     print(f"Sent keep-alive to {addr}")
                 except:
                     print(f"Connection to {addr} lost")
@@ -159,4 +162,4 @@ def new_message_incoming(addr, conn):
         conn.close()
         print(f"Connection to {addr} closed")
 
-    handle_peer_connection(conn, addr, am_interested, am_choking, peer_interested, peer_choking)
+    # handle_peer_connection(conn, addr, am_interested, am_choking, peer_interested, peer_choking)

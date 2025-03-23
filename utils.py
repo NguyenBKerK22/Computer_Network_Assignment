@@ -12,6 +12,7 @@ from threading import Thread
 import math
 import uuid
 import parsers
+import constant
 
 def get_host_default_interface_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -25,3 +26,12 @@ def get_host_default_interface_ip():
     return ip
 def generate_20_byte_peer_id():
     return str(str(uuid.uuid4())[:20])
+
+def insert_piece_to_file(filename, piece_data, piece_index):
+    try:
+        with open(filename, 'r+b') as f:
+            f.seek(piece_index * constant.PIECE_SIZE)
+            f.write(piece_data)
+            f.close()
+    except Exception as e:
+        print(f"An error occurred: {e}")

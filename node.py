@@ -28,7 +28,7 @@ if __name__ == "__main__":
     args = args_parser.parse_args()
 
     data_response = client.send_request_to_tracker(
-        'http://192.168.31.147:22236',
+        'http://192.168.31.77:22236',
         #'http://10.0.239.2:22236',
         # 'http://192.168.1.105:22236',
         torrent_info['info_hash'],
