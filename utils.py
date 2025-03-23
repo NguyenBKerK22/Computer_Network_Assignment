@@ -29,7 +29,7 @@ def generate_20_byte_peer_id():
 
 def insert_piece_to_file(filename, piece_data, piece_index):
     try:
-        with open(filename, 'r+b') as f:
+        with open(filename, 'w+b') as f:
             f.seek(piece_index * constant.PIECE_SIZE)
             f.write(piece_data)
             f.close()
