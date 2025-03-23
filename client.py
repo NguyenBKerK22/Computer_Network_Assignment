@@ -5,7 +5,7 @@ import requests
 import socket
 # Function to send request to tracker
 
-def send_request_to_tracker(announce, info_hash, file_length, piece_length, port, peerid, peerip):
+def send_request_to_tracker(announce, info_hash, file_length, piece_length, port, peerid, peerip, event):
     # Các tham số gửi lên tracker
     params = {
         "info_hash": info_hash,
@@ -16,7 +16,7 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
         "downloaded": 0,
         "left": math.ceil(file_length / piece_length),
         "compact": 0,
-        "event": "started"
+        "event": event
     }
     print(peerip)
     try:

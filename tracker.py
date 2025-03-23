@@ -3,7 +3,7 @@ from threading import Thread
 from urllib.parse import urlparse, parse_qs
 import bencodepy
 import utils
-
+import  time
 # In-memory data structures
 peers = []  # {peer_id: {"ip": str, "port": int, "files": [file_hashes]}}
 tracker_id = "hehehehehehehehehehe"  # Unique tracker ID
@@ -37,7 +37,7 @@ def new_connection(addr, conn):
             downloaded = int(query_params["downloaded"][0])
             left = int(query_params["left"][0])
             compact_mode = int(query_params.get("compact", [0])[0])
-
+            event = query_params.get("event")
             # Check and send response to peer
             if query_params['info_hash'] == '':
                 conn.sendall("HTTP/1.1 102 MISSING INFO HASH\r\n".encode())
@@ -53,14 +53,20 @@ def new_connection(addr, conn):
                 peer_list = torrents[info_hash]
 
                 existing_peer = next((p for p in peer_list if p["peer_id"] == peer_id), None)
+                current_time = time.time()
                 if existing_peer:
+                    if event == "stopped":
+                        peer_list.remove(existing_peer)
+                        return
                     existing_peer.update({
                         "peer_id": peer_id,
                         "ip": peer_ip,
                         "port": peer_port,
                         "uploaded": uploaded,
                         "downloaded": downloaded,
-                        "left": left
+                        "left": left,
+                        "event": event,
+                        "last_seen": current_time
                     })
                 else:
                     # Prepare response
@@ -79,7 +85,6 @@ def new_connection(addr, conn):
                     # Encode and send response
                     bencoded_response = bencodepy.encode(response_data)
                     conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n" + bencoded_response)
-                    print("HEHE")
                     conn.close()
 
                     peer_list.append({
@@ -88,7 +93,8 @@ def new_connection(addr, conn):
                         "port": peer_port,
                         "uploaded": uploaded,
                         "downloaded": downloaded,
-                        "left": left
+                        "left": left,
+                        "last_seen": current_time
                     })
 
             break
@@ -97,6 +103,20 @@ def new_connection(addr, conn):
             print('Error occurred!')
             break
 
+def cleanup_inactive_peers():
+    """Periodically remove peers that haven't reannounced within their interval."""
+    while True:
+        current_time = time.time()
+        for info_hash, peer_list in list(torrents.items()):
+            # Remove peers that haven't reannounced within a grace period (e.g., interval + 300 seconds)
+            active_peers = [
+                peer for peer in peer_list
+                if current_time - peer.get("last_seen", 0) <= (1800 + 300)
+            ]
+            torrents[info_hash] = active_peers
+            print(torrents[info_hash])
+        time.sleep(300)  # run cleanup every 5 minutes
+
 
 def tracker_server(host, port):
     serversocket = socket.socket()
@@ -104,12 +124,15 @@ def tracker_server(host, port):
 
     serversocket.listen(10)
 
+    cleanup_thread = Thread(target=cleanup_inactive_peers, daemon=True)
+    cleanup_thread.start()
+
     while True:
         print("Waiting for connection...")
         conn, addr = serversocket.accept()
         nconn = Thread(target=new_connection, args=(addr, conn))
         nconn.start()
-        nconn.join()
+        # nconn.join()
 
 
 
