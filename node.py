@@ -14,14 +14,6 @@ import constant
 peerip = utils.get_host_default_interface_ip()
 peerid = node_info.PeerId
 
-print(f"Peer ID: {peerid}")
-
-# Parse torrent file
-torrent_info = parsers.parse_torrent("./3mb-examplefile-com.txt.torrent")
-
-node_info.file_pieces = [0] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"])
-
-constant.PIECE_SIZE = torrent_info['piece_length']
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(
         prog='node',
@@ -29,7 +21,16 @@ if __name__ == "__main__":
         epilog='<-- !! It requires the server is running and listening !!!'
     )
     args_parser.add_argument('--server-port', required=True)
+    args_parser.add_argument('--file-path', required=True)
     args = args_parser.parse_args()
+
+    # Parse torrent file
+    node_info.file_path = args.file_path
+    torrent_info = parsers.parse_torrent(node_info.file_path)
+
+    node_info.file_pieces = [0] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"])
+
+    constant.PIECE_SIZE = torrent_info['piece_length']
 
     data_response = client.send_request_to_tracker(
         'http://192.168.31.147:22236',
