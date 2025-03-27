@@ -17,7 +17,7 @@ peerid = node_info.PeerId
 print(f"Peer ID: {peerid}")
 
 # Parse torrent file
-torrent_info = parsers.parse_torrent("./Acer_Wallpaper_02_5000x2813.jpg.torrent")
+torrent_info = parsers.parse_torrent("./3mb-examplefile-com.txt.torrent")
 
 node_info.file_pieces = [0] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"])
 
@@ -32,9 +32,9 @@ if __name__ == "__main__":
     args = args_parser.parse_args()
 
     data_response = client.send_request_to_tracker(
-        #'http://192.168.31.147:22236',
+        'http://192.168.31.147:22236',
         # 'http://10.0.129.135:22236',
-        'http://192.168.1.106:22236',
+        # 'http://192.168.1.106:22236',
         torrent_info['info_hash'],
         torrent_info['file_length'],
         torrent_info['piece_length'],

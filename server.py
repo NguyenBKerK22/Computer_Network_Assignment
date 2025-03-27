@@ -49,7 +49,7 @@ def new_message_incoming(addr, conn):
     print(f"peer_id: {recv_message['peer_id']}")
 
     # Compare info_hash
-    torrent_info = parsers.parse_torrent("./Acer_Wallpaper_02_5000x2813.jpg.torrent")
+    torrent_info = parsers.parse_torrent("./3mb-examplefile-com.txt.torrent")
     print(recv_message['info_hash'])
     print(torrent_info['info_hash'])
     if recv_message['info_hash'].hex() != torrent_info['info_hash']:

@@ -2,4 +2,4 @@ import socket
 
 NUM_BYTE_HANDSHAKE = 68
 
-PIECE_SIZE = 2**9 * 1024 # 512KB
+PIECE_SIZE = 2**4 * 1024 # 512KB
