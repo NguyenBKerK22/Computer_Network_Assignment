@@ -2,6 +2,7 @@ import handshake
 import math
 import bencodepy
 import requests
+import  struct
 import socket
 import node_info
 import constant
@@ -53,28 +54,32 @@ def thread_client(id, serverip, serverport, torrent_info):
         return
     while True:
        # recv message length
-        print("wait 4")
-        message_length_bytes = client_socket.recv(4)
-        if not message_length_bytes:
-            print(f"Connection closed by peer's server: {serverip}")
-            return
-        message_length = int.from_bytes(message_length_bytes, 'big')
-        print(f"Received message length: {message_length}")
-        if message_length == 0:
-            print(f"Received keep-alive from server {serverip}")
-            continue
-        # receive message type
-        message_type = int.from_bytes(client_socket.recv(1))
-        print(f"Received message length: {message_type}")
-        if not message_type:
-            print(f"Connection closed by peer's server: {serverip}")
-            break
-        # receive payload
-        if message_length > 1:
-            payload = client_socket.recv(message_length - 1)
-        else:
-            payload = b''
-            break
-        handshake.client_handle_message(client_socket, message_type, payload)
+       #  print("wait 4")
+       #  message_length_bytes = client_socket.recv(4)
+       #  if not message_length_bytes:
+       #      print(f"Connection closed by peer's server: {serverip}")
+       #      return
+       #  message_length = int.from_bytes(message_length_bytes, 'big')
+       #  print(f"Received message length: {message_length}")
+       #  if message_length == 0:
+       #      print(f"Received keep-alive from server {serverip}")
+       #      continue
+       #  # receive message type
+       #  message_type = client_socket.recv(1)
+       #  print(f"Received message type: {message_type}")
+       #  message_type = int.from_bytes(message_type, 'big')
+       #  if not message_type:
+       #      print(f"Connection closed by peer's server: {serverip}")
+       #      break
+       #  # receive payload
+       #  if message_length > 1:
+       #      payload = client_socket.recv(message_length - 1)
+       #  else:
+       #      payload = b''
+       #      break
+       message_length, message_type, payload = utils.receive_message(client_socket)
+       print("Message length:", message_length)
+       print("Message type:", message_type)
+       handshake.client_handle_message(client_socket, message_type, payload)
         
     
