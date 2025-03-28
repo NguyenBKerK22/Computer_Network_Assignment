@@ -1,3 +1,15 @@
+# peer_connections = {}
+
+# def select_best_peer():
+#     best_peer = None
+#     best_speed = 0
+#     for addr, conn in peer_connections.items():
+#         if hasattr(conn, 'peer_data') and 'upload_speed' in conn.peer_data and 'download_speed' in conn.peer_data:
+#             combined_speed = conn.peer_data['upload_speed'] + conn.peer_data['download_speed']
+#             if combined_speed > best_speed:
+#                 best_speed = combined_speed
+#                 best_peer = addr
+#     return best_peer
 import socket
 import time
 import argparse
@@ -32,9 +44,9 @@ if __name__ == "__main__":
 
     # CLIENT: Parse torrent file
     node_info.file_path = args.file_path
-    torrent_info = parsers.parse_torrent(os.path.join(node_info.node_folder, args.file_path))
+    torrent_info = parsers.parse_torrent(f"./{node_info.node_folder}/torrents/{node_info.file_path}")
     # CLIENT: save torrent information
-    node_info.torrent_info = torrent_info
+    node_info.torrent_info = torrent_info 
     # CLIENT: init downloaded pieces
     node_info.downloaded_pieces = [0] * math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
     
@@ -43,15 +55,15 @@ if __name__ == "__main__":
         for file in os.listdir(directory):
             torrent_info = parsers.parse_torrent(os.path.join(directory, file))
             node_info.files.append(torrent_info)
-            
+
     load_all_files = load_all_torrents(f"./{node_info.node_folder}/torrents/")
 
     constant.PIECE_SIZE = torrent_info['piece_length']
     print(f"Piece size: {constant.PIECE_SIZE}")
 
     data_response = client.send_request_to_tracker(
-        'http://192.168.31.77:22236',
-        # 'http://10.0.129.135:22236',
+        # 'http://192.168.31.147:22236',
+        'http://10.0.120.133:22236',
         # 'http://192.168.1.106:22236',
         torrent_info['info_hash'],
         torrent_info['file_length'],

@@ -3,6 +3,7 @@ import utils
 import node_info
 import constant
 import os
+import time
 diff_indexes = []
 index = 0
 
@@ -106,7 +107,7 @@ def client_handle_message(socket, message_type, payload):
             socket.sendall(request_msg)
             print(f"Sent request XXXX for piece {index} (offset {begin}, length {block_length})")
 
-def server_handle_message(message_type, payload, conn, torrent_info):
+def server_handle_message(message_type, payload, conn, addr, torrent_info):
     if message_type[0] == 4:  # Have (client -> server)
         piece_index = int.from_bytes(payload, 'big')
         print(f"[HAVE]")
@@ -115,13 +116,28 @@ def server_handle_message(message_type, payload, conn, torrent_info):
         begin = int.from_bytes(payload[4:8], 'big')
         length = int.from_bytes(payload[8:], 'big')
         # read file from index * PIECE_SIZE to index * PIECE_SIZE + length
+        block = b''
         with open(os.path.join(f"./{node_info.node_folder}/files/", torrent_info["file_name"]), 'rb') as f:
             f.seek(index * constant.PIECE_SIZE + begin)
             block = f.read(length)
-        print(len(block))
+            f.close()
+        print(f"block length: {len(block)}")
         block_message = construct_block_message(index, len(block), block)
+        
+        # speed measurement
+        start_time = time.time()
         conn.sendall(block_message)
-        f.close()
+        end_time = time.time()
+        
+        time_elapsed = end_time - start_time
+        if time_elapsed > 0:
+            upload_speed = len(block_message) / time_elapsed
+            node_info.transfer_speed[f"{addr[0]}"] = upload_speed
+            print(f"Upload speed: {upload_speed} bytes/second {addr[0]}:{addr[1]}")
+        else:
+            
+            print("Upload speed: 0 bytes/second")
+        
         print(f"[REQUEST]")
     elif message_type[0] == 8:  # Cancel (client -> server)
         index = int.from_bytes(payload[:4], 'big')

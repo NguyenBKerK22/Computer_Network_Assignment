@@ -8,6 +8,7 @@ import node_info
 import hashlib
 import handshake
 import math
+import node
 
 #########################################
 # Thread Server
@@ -20,12 +21,11 @@ def thread_server(host, port):
 
     serversocket.listen(10)
     while True:
+        print("Wait for connection from other peers...")
         conn, addr = serversocket.accept()
         print("Incoming connection from: {}".format(addr))
         nconn = Thread(target=new_message_incoming, args=(addr, conn))
         nconn.start()
-        nconn.join()
-
 
 #########################################
 # NEW SERVER INCOMING
@@ -93,6 +93,7 @@ def new_message_incoming(addr, conn):
         message_length_bytes = conn.recv(4)
         if not message_length_bytes:
             print(f"Connection closed by server {addr}")
+            node.peer_connections.pop(addr, None)
             return
         message_length = int.from_bytes(message_length_bytes, 'big')
         if message_length == 0:
@@ -109,5 +110,6 @@ def new_message_incoming(addr, conn):
         else:
             payload = b''
 
-        handshake.server_handle_message(message_type, payload, conn, torrent_info)
+        handshake.server_handle_message(message_type, payload, conn, addr, torrent_info)
+        
 

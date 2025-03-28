@@ -8,6 +8,7 @@ import node_info
 import constant
 import parsers
 import utils
+import node
 # Function to send request to tracker
 
 def send_request_to_tracker(announce, info_hash, file_length, piece_length, port, peerid, peerip, event):
@@ -41,6 +42,10 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
         return None
 
 def thread_client(id, serverip, serverport):
+    best_peer = node.select_best_peer()
+    if best_peer:
+        serverip, serverport = best_peer
+        print(f"Connecting to best peer: {best_peer}")
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((serverip, serverport))
 
