@@ -48,15 +48,64 @@ def new_connection(addr, conn):
             # elif len(query_params['peer_id'][0]) != 20:
             #     conn.sendall("HTTP/1.1 151 INVALID PEER ID\r\n".encode())
             else:
-                if info_hash not in torrents:
-                    torrents[info_hash] = []  # Initialize torrent peer list
-                peer_list = torrents[info_hash]
-
-                existing_peer = next((p for p in peer_list if p["peer_id"] == peer_id), None)
+                # print("info hash: ", query_params['info_hash'])
+                # if info_hash not in torrents:
+                #     torrents[info_hash] = []  # Initialize torrent peer list
+                # peer_list = torrents[info_hash]
+                # print(peer_list)
+                # existing_peer = next((p for p in peer_list if p["peer_id"] == peer_id), None)
+                # current_time = time.time()
+                # if existing_peer:
+                #     print("Existing")
+                #     if event == "stopped":
+                #         peer_list.remove(existing_peer)
+                #         return
+                #     existing_peer.update({
+                #         "peer_id": peer_id,
+                #         "ip": peer_ip,
+                #         "port": peer_port,
+                #         "uploaded": uploaded,
+                #         "downloaded": downloaded,
+                #         "left": left,
+                #         "event": event,
+                #         "last_seen": current_time
+                #     })
+                # else:
+                #     print("NOTExisting")
+                #     # Prepare response
+                #     response_data = {"interval": 1800}
+                #
+                #     if compact_mode == 1:
+                #         compact_peers = b"".join(
+                #             socket.inet_aton(peer["ip"]) + peer["port"].to_bytes(2, "big")
+                #             for peer in peer_list
+                #         )
+                #         response_data[b"peers"] = compact_peers
+                #     else:
+                #         response_data[b"peers"] = [{"ip": p["ip"], "peer_id": p["peer_id"], "port": p["port"]} for p in
+                #                                    peer_list]
+                #
+                #     # Encode and send response
+                #     bencoded_response = bencodepy.encode(response_data)
+                #     conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n" + bencoded_response)
+                #     conn.close()
+                #
+                #     peer_list.append({
+                #         "peer_id": peer_id,
+                #         "ip": peer_ip,
+                #         "port": peer_port,
+                #         "uploaded": uploaded,
+                #         "downloaded": downloaded,
+                #         "left": left,
+                #         "last_seen": current_time
+                #     })
+                    # Kiểm tra nếu peer đã tồn tại
+                existing_peer = next((p for p in peers if p["peer_id"] == peer_id), None)
                 current_time = time.time()
                 if existing_peer:
+                    # Cập nhật thời gian last_seen
                     if event == "stopped":
-                        peer_list.remove(existing_peer)
+                        peers.remove(existing_peer)
                         return
                     existing_peer.update({
                         "peer_id": peer_id,
@@ -69,34 +118,32 @@ def new_connection(addr, conn):
                         "last_seen": current_time
                     })
                 else:
-                    # Prepare response
+                    # Thêm peer mới vào danh sách
                     response_data = {"interval": 1800}
-
                     if compact_mode == 1:
                         compact_peers = b"".join(
                             socket.inet_aton(peer["ip"]) + peer["port"].to_bytes(2, "big")
-                            for peer in peer_list
+                            for peer in peers
                         )
                         response_data[b"peers"] = compact_peers
                     else:
                         response_data[b"peers"] = [{"ip": p["ip"], "peer_id": p["peer_id"], "port": p["port"]} for p in
-                                                   peer_list]
-
-                    # Encode and send response
+                                                   peers]
                     bencoded_response = bencodepy.encode(response_data)
                     conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n" + bencoded_response)
                     conn.close()
-
-                    peer_list.append({
+                    peers.append({
                         "peer_id": peer_id,
                         "ip": peer_ip,
                         "port": peer_port,
                         "uploaded": uploaded,
                         "downloaded": downloaded,
                         "left": left,
+                        "event": event,
                         "last_seen": current_time
                     })
-
+                    print(f"Added peer: {peer_ip}:{peer_port} (ID: {peer_id})")
+                break
             break
         except Exception as e:
             print(e)

@@ -32,7 +32,9 @@ if __name__ == "__main__":
 
     # CLIENT: Parse torrent file
     node_info.file_path = args.file_path
-    torrent_info = parsers.parse_torrent(os.path.join(node_info.node_folder, args.file_path))
+    print(os.path.join(node_info.node_folder, args.file_path))
+    # torrent_info = parsers.parse_torrent(os.path.join(node_info.node_folder, args.file_path))
+    torrent_info = parsers.parse_torrent(f"./{node_info.node_folder}/torrents/{node_info.file_path}")
     # CLIENT: save torrent information
     node_info.torrent_info = torrent_info
     # CLIENT: init downloaded pieces
@@ -50,7 +52,7 @@ if __name__ == "__main__":
     print(f"Piece size: {constant.PIECE_SIZE}")
 
     data_response = client.send_request_to_tracker(
-        'http://192.168.31.77:22236',
+        'http://192.168.31.147:22236',
         # 'http://10.0.129.135:22236',
         # 'http://192.168.1.106:22236',
         torrent_info['info_hash'],
@@ -62,7 +64,7 @@ if __name__ == "__main__":
         "started"
     )
     peers = parsers.parse_response(data_response)
-
+    print(peers)
     if peers:
         print(str(peers[0][b'ip']) + " " + str(peers[0][b'port']))
         tclient = Thread(
