@@ -40,43 +40,17 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
         print(f"❌ Error connecting to tracker: {e}")
         return None
 
-def thread_client(id, serverip, serverport, torrent_info):
-    state = 1
-    list_piece_data = []
+def thread_client(id, serverip, serverport):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((serverip, serverport))
 
-    client_socket.sendall(handshake.create_handshake_message(torrent_info['info_hash']))
+    client_socket.sendall(handshake.create_handshake_message(node_info.torrent_info['info_hash']))
     handshake_back = client_socket.recv(constant.NUM_BYTE_HANDSHAKE)
     if(handshake_back == b''):
         print("No handshake back received. Check for your info_hash")
         client_socket.close()
         return
     while True:
-       # recv message length
-       #  print("wait 4")
-       #  message_length_bytes = client_socket.recv(4)
-       #  if not message_length_bytes:
-       #      print(f"Connection closed by peer's server: {serverip}")
-       #      return
-       #  message_length = int.from_bytes(message_length_bytes, 'big')
-       #  print(f"Received message length: {message_length}")
-       #  if message_length == 0:
-       #      print(f"Received keep-alive from server {serverip}")
-       #      continue
-       #  # receive message type
-       #  message_type = client_socket.recv(1)
-       #  print(f"Received message type: {message_type}")
-       #  message_type = int.from_bytes(message_type, 'big')
-       #  if not message_type:
-       #      print(f"Connection closed by peer's server: {serverip}")
-       #      break
-       #  # receive payload
-       #  if message_length > 1:
-       #      payload = client_socket.recv(message_length - 1)
-       #  else:
-       #      payload = b''
-       #      break
        message_length, message_type, payload = utils.receive_message(client_socket)
        print("Message length:", message_length)
        print("Message type:", message_type)

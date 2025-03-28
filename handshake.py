@@ -2,7 +2,7 @@ import binascii
 import utils
 import node_info
 import constant
-
+import os
 diff_indexes = []
 index = 0
 
@@ -74,24 +74,14 @@ def construct_cancel_message(index, begin, length):
 def client_handle_message(socket, message_type, payload):
     global diff_indexes
     global index
-    if message_type == 0:  # Choke
-        peer_choking = True
-    elif message_type == 1:  # Unchoke
-        peer_choking = False
-        print(f"Peer unchoked us")
-    elif message_type == 2:  # Interested
-        peer_interested = True
-        print(f"Peer is interested")
-    elif message_type == 3:  # Not Interested
-        peer_interested = False
-        print(f"Peer is not interested")
-    elif message_type == 5:  # Bitfield (server -> client)
+    if message_type == 5:  # Bitfield (server -> client)
         recv_file_pieces = revert_bitfield_message(payload)
         # compare with file_pieces
-        diff_indexes = [i for i, (local, peer) in enumerate(zip(node_info.file_pieces, recv_file_pieces)) if local == 0 and peer == 1]
+        diff_indexes = [i for i, (local, peer) in enumerate(zip(node_info.downloaded_pieces, recv_file_pieces)) if local == 0 and peer == 1]
         # For example, request the first block of the piece:
         begin = 0
         block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
+
         print(f"hihihihihi: {diff_indexes}")
         if diff_indexes:
             request_msg = construct_request_message(diff_indexes[index], begin, block_length)
@@ -106,29 +96,18 @@ def client_handle_message(socket, message_type, payload):
         block = payload[8:]
         print(len(block))
         print(index_response)
-        utils.insert_piece_to_file(filename= "./hehe.txt", piece_index = index_response, piece_data= block)
+        utils.insert_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
         if index != len(diff_indexes):
             begin = 0
             block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
+
             request_msg = construct_request_message(diff_indexes[index], begin, block_length)
             index = index + 1
             socket.sendall(request_msg)
             print(f"Sent request XXXX for piece {index} (offset {begin}, length {block_length})")
 
-def server_handle_message(message_type, payload, conn):
-    if message_type[0] == 0:  # Choke
-        peer_choking = True
-        print(f"Peer choked us")
-    elif message_type[0] == 1:  # Unchoke
-        peer_choking = False
-        print(f"Peer unchoked us")
-    elif message_type[0] == 2:  # Interested
-        peer_interested = True
-        print(f"Peer is interested")
-    elif message_type[0] == 3:  # Not Interested
-        peer_interested = False
-        print(f"Peer is not interested")
-    elif message_type[0] == 4:  # Have (client -> server)
+def server_handle_message(message_type, payload, conn, torrent_info):
+    if message_type[0] == 4:  # Have (client -> server)
         piece_index = int.from_bytes(payload, 'big')
         print(f"[HAVE]")
     elif message_type[0] == 6:  # Request (client -> server)
@@ -136,7 +115,7 @@ def server_handle_message(message_type, payload, conn):
         begin = int.from_bytes(payload[4:8], 'big')
         length = int.from_bytes(payload[8:], 'big')
         # read file from index * PIECE_SIZE to index * PIECE_SIZE + length
-        with open(node_info.file_path, 'rb') as f:
+        with open(os.path.join(f"./{node_info.node_folder}/files/", torrent_info["file_name"]), 'rb') as f:
             f.seek(index * constant.PIECE_SIZE + begin)
             block = f.read(length)
         print(len(block))

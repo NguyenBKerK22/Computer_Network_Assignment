@@ -7,7 +7,7 @@ import parsers
 import node_info
 import hashlib
 import handshake
-
+import math
 
 #########################################
 # Thread Server
@@ -48,11 +48,15 @@ def new_message_incoming(addr, conn):
     print(f"info_hash: {recv_message['info_hash']}")
     print(f"peer_id: {recv_message['peer_id']}")
 
-    # Compare info_hash
-    torrent_info = parsers.parse_torrent(node_info.file_path)
-    print(recv_message['info_hash'])
-    print(torrent_info['info_hash'])
-    if recv_message['info_hash'].hex() != torrent_info['info_hash']:
+    # Find info_hash
+    match_found = False
+    torrent_info = None
+    for file_info in node_info.files:
+        if recv_message['info_hash'].hex() == file_info['info_hash']:
+            torrent_info = file_info
+            match_found = True
+            break
+    if not match_found:
         print("compare info_hash fail")
         print(f"Incorrect info_hash from {addr}")
         conn.close()
@@ -69,7 +73,10 @@ def new_message_incoming(addr, conn):
     print(f"Sent response handshake to {addr}")
 
     # Send bitfield back
-    bitfield_message = handshake.construct_bitfield_message(node_info.file_pieces)
+    bitfield_message = handshake.construct_bitfield_message(
+        # Assume all pieces are available
+        [1] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"]) 
+    )
     if bitfield_message == b'':
         conn.close()
         return
@@ -102,12 +109,5 @@ def new_message_incoming(addr, conn):
         else:
             payload = b''
 
-        handshake.server_handle_message(message_type, payload, conn)
-
-    # Send choke message (initial state)
-    # choke_message = b'\x00\x00\x00\x01\x00'
-    # conn.sendall(choke_message)
-
-    # TODO: Update am_interested status based on application logic
-    # TODO: Communicate am_interested status to peer
+        handshake.server_handle_message(message_type, payload, conn, torrent_info)
 

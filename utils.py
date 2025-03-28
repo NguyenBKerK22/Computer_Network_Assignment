@@ -3,10 +3,6 @@ import time
 import argparse
 import mmap
 from urllib.parse import urlparse, parse_qs
-import bencodepy
-import hashlib
-import binascii
-import requests
 from requests import PreparedRequest
 from threading import Thread
 import math
@@ -34,6 +30,10 @@ def insert_piece_to_file(filename, piece_data, piece_index):
             f.write(piece_data)
             f.close()
     except Exception as e:
+        with open(filename, 'w+b') as f:
+            f.seek(piece_index * constant.PIECE_SIZE)
+            f.write(piece_data)
+            f.close()
         print(f"An error occurred: {e}")
 
 def recv_exactly(sock, size):
@@ -59,3 +59,4 @@ def receive_message(sock):
     payload = recv_exactly(sock, message_length - 1) if message_length > 1 else b''
 
     return message_length, message_type[0], payload  # Trả về kiểu số nguyên + dữ liệu payload
+
