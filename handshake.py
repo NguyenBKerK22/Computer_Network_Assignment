@@ -3,6 +3,7 @@ import utils
 import node_info
 import constant
 import os
+import hashlib
 diff_indexes = []
 index = 0
 
@@ -82,11 +83,9 @@ def client_handle_message(socket, message_type, payload):
         begin = 0
         block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
 
-        print(f"hihihihihi: {diff_indexes}")
         if diff_indexes:
             request_msg = construct_request_message(diff_indexes[index], begin, block_length)
             socket.sendall(request_msg)
-            index = index + 1
         print(f"Sent request for piece {index} (offset {begin}, length {block_length})")
 
     elif message_type == 7:  # block (server -> client)
@@ -96,15 +95,29 @@ def client_handle_message(socket, message_type, payload):
         block = payload[8:]
         print(len(block))
         print(index_response)
-        utils.insert_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
-        if index != len(diff_indexes):
-            begin = 0
-            block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
-
-            request_msg = construct_request_message(diff_indexes[index], begin, block_length)
-            index = index + 1
+        # Mission 1 : Check hash sha1 of block, if f hash sha1 true, store ìnformation of node
+        print(node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20])
+        print(hashlib.sha1(block).digest())
+        print(" Length of node info", len(node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20]))
+        print(" Length of hashlib", len(hashlib.sha1(block).hexdigest()))
+        if node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20] == hashlib.sha1(block).digest():
+            print("received block")
+            diff_indexes[index] = 1
+            utils.insert_piece_to_file(
+                filename=f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}",
+                piece_index=index_response, piece_data=block)
+            if index != len(diff_indexes):
+                begin = 0
+                block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
+                index = index + 1
+                request_msg = construct_request_message(diff_indexes[index], begin, block_length)
+                socket.sendall(request_msg)
+                print(f"Sent request XXXX for piece {index} (offset {begin}, length {block_length})")
+        else:
+            request_msg = construct_request_message(diff_indexes[index], 0, constant.PIECE_SIZE)
             socket.sendall(request_msg)
-            print(f"Sent request XXXX for piece {index} (offset {begin}, length {block_length})")
+            print(f"Sent request XXXX for piece {index} (offset {0}, length {constant.PIECE_SIZE})")
+
 
 def server_handle_message(message_type, payload, conn, torrent_info):
     if message_type[0] == 4:  # Have (client -> server)

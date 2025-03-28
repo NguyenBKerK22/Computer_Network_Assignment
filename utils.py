@@ -1,13 +1,5 @@
 import socket
-import time
-import argparse
-import mmap
-from urllib.parse import urlparse, parse_qs
-from requests import PreparedRequest
-from threading import Thread
-import math
 import uuid
-import parsers
 import constant
 import struct
 def get_host_default_interface_ip():

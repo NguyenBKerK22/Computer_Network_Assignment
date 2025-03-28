@@ -42,14 +42,17 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
 
 def thread_client(id, serverip, serverport):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print(serverip)
+    print(serverport)
     client_socket.connect((serverip, serverport))
-    print("HEHE")
+
     client_socket.sendall(handshake.create_handshake_message(node_info.torrent_info['info_hash']))
     handshake_back = client_socket.recv(constant.NUM_BYTE_HANDSHAKE)
     if(handshake_back == b''):
         print("No handshake back received. Check for your info_hash")
         client_socket.close()
         return
+    print("Handshake received")
     while True:
        message_length, message_type, payload = utils.receive_message(client_socket)
        print("Message length:", message_length)

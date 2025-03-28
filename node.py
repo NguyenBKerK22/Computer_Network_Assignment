@@ -1,8 +1,10 @@
 import socket
 import time
 import argparse
+from encodings.hex_codec import hex_decode
 from threading import Thread
 import math
+import  bencodepy
 import uuid
 import parsers
 import utils
@@ -10,6 +12,7 @@ import client
 import server
 import node_info
 import constant
+import hashlib
 import os
 # Create peer infomation
 peerip = utils.get_host_default_interface_ip()
@@ -35,6 +38,7 @@ if __name__ == "__main__":
     print(os.path.join(node_info.node_folder, args.file_path))
     # torrent_info = parsers.parse_torrent(os.path.join(node_info.node_folder, args.file_path))
     torrent_info = parsers.parse_torrent(f"./{node_info.node_folder}/torrents/{node_info.file_path}")
+    print(len(torrent_info['pieces'].hex()))
     # CLIENT: save torrent information
     node_info.torrent_info = torrent_info
     # CLIENT: init downloaded pieces
@@ -52,8 +56,8 @@ if __name__ == "__main__":
     print(f"Piece size: {constant.PIECE_SIZE}")
 
     data_response = client.send_request_to_tracker(
-        'http://192.168.31.147:22236',
-        # 'http://10.0.129.135:22236',
+        #'http://192.168.31.147:22236',
+         'http://10.0.120.133:22236',
         # 'http://192.168.1.106:22236',
         torrent_info['info_hash'],
         torrent_info['file_length'],
@@ -64,7 +68,6 @@ if __name__ == "__main__":
         "started"
     )
     peers = parsers.parse_response(data_response)
-    print(peers)
     if peers:
         print(str(peers[0][b'ip']) + " " + str(peers[0][b'port']))
         tclient = Thread(
