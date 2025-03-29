@@ -1,15 +1,8 @@
 import socket
-import time
-import argparse
-import mmap
-from urllib.parse import urlparse, parse_qs
-from requests import PreparedRequest
-from threading import Thread
-import math
 import uuid
-import parsers
 import constant
 import struct
+import mmap
 def get_host_default_interface_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -35,6 +28,19 @@ def insert_piece_to_file(filename, piece_data, piece_index):
             f.write(piece_data)
             f.close()
         print(f"An error occurred: {e}")
+
+
+def create_file(file_name, file_size):
+    with open(file_name, "wb") as f:
+        f.truncate(file_size)  # Tạo file rỗng với kích thước cố định
+
+def map_piece_to_file(filename, piece_data, piece_index):
+    with open(filename, "r+b") as f:
+        mmapped_file = mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_WRITE)
+        start_byte = piece_index * constant.PIECE_SIZE
+        mmapped_file[start_byte:start_byte + constant.PIECE_SIZE] = piece_data
+        mmapped_file.flush()
+        mmapped_file.close()
 
 def recv_exactly(sock, size):
     """ Nhận chính xác `size` byte từ socket """

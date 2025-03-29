@@ -74,6 +74,18 @@ def thread_client(id, serverip, serverport):
             print("[Timeout]: Did not receive a message in time.")
             print("CLOSE SOCKET")
             client_socket.close()
-        
-        
+
+
+def thread_client_new(id, serverip, serverport, index_of_pieces):
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((serverip, serverport))
+
+    request_msg = handshake.construct_request_message(index_of_pieces, 0, constant.PIECE_SIZE)
+    client_socket.sendall(request_msg)
+    while True:
+        message_length, message_type, payload = utils.receive_message(client_socket)
+        print("Message length:", message_length)
+        print("Message type:", message_type)
+        handshake.client_handle_message_new(client_socket, message_type, payload, filepath= "./node2/downloaded/3mb-examplefile-com.txt")
+
     

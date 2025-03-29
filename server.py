@@ -13,6 +13,9 @@ import node
 #########################################
 # Thread Server
 #########################################
+connected_peers = set()
+
+
 def thread_server(host, port):
     print("Thread server listening on: {}:{}".format(host, port))
 
@@ -26,13 +29,15 @@ def thread_server(host, port):
         print("Incoming connection from: {}".format(addr))
         nconn = Thread(target=new_message_incoming, args=(addr, conn))
         nconn.start()
+        # nconn.join()
+
 
 #########################################
 # NEW SERVER INCOMING
 #########################################
 def new_message_incoming(addr, conn):
     # Receive Handshake
-    print(conn)
+    print("\nNew connection from: {}".format(addr))
     handshake_message = conn.recv(constant.NUM_BYTE_HANDSHAKE)
     if not handshake_message:
         print(f"No handshake received from {addr}")
@@ -75,8 +80,9 @@ def new_message_incoming(addr, conn):
     # Send bitfield back
     bitfield_message = handshake.construct_bitfield_message(
         # Assume all pieces are available
-        [1] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"]) 
+        [1] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"])
     )
+    print(bitfield_message)
     if bitfield_message == b'':
         conn.close()
         return
@@ -123,5 +129,5 @@ def new_message_incoming(addr, conn):
             payload = b''
 
         handshake.server_handle_message(message_type, payload, conn, addr, torrent_info)
-        
+
 
