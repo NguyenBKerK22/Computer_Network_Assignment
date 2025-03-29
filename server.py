@@ -24,7 +24,7 @@ def thread_server(host, port):
         print("Incoming connection from: {}".format(addr))
         nconn = Thread(target=new_message_incoming, args=(addr, conn))
         nconn.start()
-        nconn.join()
+        # nconn.join()
 
 
 #########################################
@@ -32,7 +32,7 @@ def thread_server(host, port):
 #########################################
 def new_message_incoming(addr, conn):
     # Receive Handshake
-    print(conn)
+    print("\nNew connection from: {}".format(addr))
     handshake_message = conn.recv(constant.NUM_BYTE_HANDSHAKE)
     if not handshake_message:
         print(f"No handshake received from {addr}")
@@ -77,6 +77,7 @@ def new_message_incoming(addr, conn):
         # Assume all pieces are available
         [1] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"]) 
     )
+    print(bitfield_message)
     if bitfield_message == b'':
         conn.close()
         return

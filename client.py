@@ -42,8 +42,6 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
 
 def thread_client(id, serverip, serverport):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print(serverip)
-    print(serverport)
     client_socket.connect((serverip, serverport))
 
     client_socket.sendall(handshake.create_handshake_message(node_info.torrent_info['info_hash']))
@@ -58,5 +56,18 @@ def thread_client(id, serverip, serverport):
        print("Message length:", message_length)
        print("Message type:", message_type)
        handshake.client_handle_message(client_socket, message_type, payload)
-        
+
+
+def thread_client_new(id, serverip, serverport, index_of_pieces):
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((serverip, serverport))
+
+    request_msg = handshake.construct_request_message(index_of_pieces, 0, constant.PIECE_SIZE)
+    client_socket.sendall(request_msg)
+    while True:
+        message_length, message_type, payload = utils.receive_message(client_socket)
+        print("Message length:", message_length)
+        print("Message type:", message_type)
+        handshake.client_handle_message_new(client_socket, message_type, payload, filepath= "C:/Users/ADMIN/PycharmProjects/PythonProject2/Computer_Network_Assignment/node2/downloaded/3mb-examplefile-com.txt")
+
     

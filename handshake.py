@@ -4,6 +4,7 @@ import node_info
 import constant
 import os
 import hashlib
+import mmap
 diff_indexes = []
 index = 0
 
@@ -89,24 +90,16 @@ def client_handle_message(socket, message_type, payload):
         print(f"Sent request for piece {index} (offset {begin}, length {block_length})")
 
     elif message_type == 7:  # block (server -> client)
-        print("receive block")
         index_response = int.from_bytes(payload[:4], 'big')
         length = int.from_bytes(payload[4:8], 'big')
         block = payload[8:]
-        print(len(block))
-        print(index_response)
-        # Mission 1 : Check hash sha1 of block, if f hash sha1 true, store ìnformation of node
-        print(node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20])
-        print(hashlib.sha1(block).digest())
-        print(" Length of node info", len(node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20]))
-        print(" Length of hashlib", len(hashlib.sha1(block).hexdigest()))
         if node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20] == hashlib.sha1(block).digest():
             print("received block")
             diff_indexes[index] = 1
             utils.insert_piece_to_file(
                 filename=f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}",
                 piece_index=index_response, piece_data=block)
-            if index != len(diff_indexes):
+            if index != len(diff_indexes) - 1:
                 begin = 0
                 block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
                 index = index + 1
@@ -141,3 +134,15 @@ def server_handle_message(message_type, payload, conn, torrent_info):
         begin = int.from_bytes(payload[4:8], 'big')
         length = int.from_bytes(payload[8:], 'big')
         print(f"[CANCEL]")
+
+
+def client_handle_message_new(socket, message_type, payload, filepath):
+    index_response = int.from_bytes(payload[:4], 'big')
+    length = int.from_bytes(payload[4:8], 'big')
+    block = payload[8:]
+    if node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20] == hashlib.sha1(block).digest():
+        utils.map_piece_to_file(filepath, index_response, block)
+    else:
+        request_msg = construct_request_message(diff_indexes[index], 0, constant.PIECE_SIZE)
+        socket.sendall(request_msg)
+        print(f"Sent request XXXX for piece {index} (offset {0}, length {constant.PIECE_SIZE})")
