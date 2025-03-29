@@ -42,23 +42,38 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
         return None
 
 def thread_client(id, serverip, serverport):
-    best_peer = node.select_best_peer()
-    if best_peer:
-        serverip, serverport = best_peer
-        print(f"Connecting to best peer: {best_peer}")
+    # best_peer = node.select_best_peer()
+    # if best_peer:
+    #     serverip, serverport = best_peer
+    #     print(f"Connecting to best peer: {best_peer}")
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((serverip, serverport))
 
     client_socket.sendall(handshake.create_handshake_message(node_info.torrent_info['info_hash']))
-    handshake_back = client_socket.recv(constant.NUM_BYTE_HANDSHAKE)
+    client_socket.settimeout(1)  # Set a timeout of 1 seconds for receiving a message
+    try:
+        handshake_back = client_socket.recv(constant.NUM_BYTE_HANDSHAKE)
+    except socket.timeout:
+        print("[Timeout]: Did not receive a handshake back in time.")
+        print("CLOSE SOCKET")
+        client_socket.close()
+        return
     if(handshake_back == b''):
         print("No handshake back received. Check for your info_hash")
         client_socket.close()
         return
+    client_socket.settimeout(constant.TIMEOUT_BITFIELD)  # Set a timeout of 1 seconds for bitfield message
     while True:
-       message_length, message_type, payload = utils.receive_message(client_socket)
-       print("Message length:", message_length)
-       print("Message type:", message_type)
-       handshake.client_handle_message(client_socket, message_type, payload)
+        try:
+            print("Waiting for message...")
+            message_length, message_type, payload = utils.receive_message(client_socket)
+            print("Message length:", message_length)
+            print("Message type:", message_type)
+            handshake.client_handle_message(client_socket, message_type, payload)
+        except socket.timeout:
+            print("[Timeout]: Did not receive a message in time.")
+            print("CLOSE SOCKET")
+            client_socket.close()
+        
         
     

@@ -3,3 +3,6 @@ import socket
 NUM_BYTE_HANDSHAKE = 68
 
 PIECE_SIZE = 2**4 * 1024 # 512KB
+
+TIMEOUT_BITFIELD = 2  # seconds
+TIMEOUT_REQUEST = 1  # seconds

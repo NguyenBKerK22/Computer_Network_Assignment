@@ -87,6 +87,10 @@ def client_handle_message(socket, message_type, payload):
         if diff_indexes:
             request_msg = construct_request_message(diff_indexes[index], begin, block_length)
             socket.sendall(request_msg)
+            
+            # set timeout
+            socket.settimeout(constant.TIMEOUT_REQUEST)
+            
             index = index + 1
         print(f"Sent request for piece {index} (offset {begin}, length {block_length})")
 
@@ -105,6 +109,10 @@ def client_handle_message(socket, message_type, payload):
             request_msg = construct_request_message(diff_indexes[index], begin, block_length)
             index = index + 1
             socket.sendall(request_msg)
+            
+            # set timeout
+            socket.settimeout(constant.TIMEOUT_REQUEST)
+            
             print(f"Sent request XXXX for piece {index} (offset {begin}, length {block_length})")
 
 def server_handle_message(message_type, payload, conn, addr, torrent_info):

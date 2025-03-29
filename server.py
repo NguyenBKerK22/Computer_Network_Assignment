@@ -48,7 +48,7 @@ def new_message_incoming(addr, conn):
     print(f"info_hash: {recv_message['info_hash']}")
     print(f"peer_id: {recv_message['peer_id']}")
 
-    # Find info_hash
+    # Find info_hashc
     match_found = False
     torrent_info = None
     for file_info in node_info.files:
@@ -88,12 +88,24 @@ def new_message_incoming(addr, conn):
     am_choking = True
     peer_interested = False
     peer_choking = True
+    [
+        { # piece 1
+            "peers": ["192.168.1.1:5555", "192.168.1.233:9999"]
+        },
+        { # piece 2
+            "peers" : None
+        },
+        { # piece 3
+            "peers": ["192.168.1.1:5555"]
+        }
+    ]
 
+    # TODO: create timeout for server
     while (1):
         message_length_bytes = conn.recv(4)
         if not message_length_bytes:
             print(f"Connection closed by server {addr}")
-            node.peer_connections.pop(addr, None)
+            # node.peer_connections.pop(addr, None)
             return
         message_length = int.from_bytes(message_length_bytes, 'big')
         if message_length == 0:
