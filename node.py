@@ -20,10 +20,10 @@ peerip = utils.get_host_default_interface_ip()
 peerid = node_info.PeerId
 
 # Dictionary to store available pieces from peers
-count = 0
+# count = 0
 peer_pieces = {}
 peer_pieces_lock = threading.Lock()
-
+downloading_lock = threading.Lock()
 
 def select_servers(piece_map):
     server_pieces = defaultdict(list)
@@ -41,8 +41,6 @@ def select_servers(piece_map):
 
 def client_handshake_bitfield(serverip, serverport):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print(serverip)
-    print(serverport)
     client_socket.connect((serverip, serverport))
 
     client_socket.sendall(handshake.create_handshake_message(node_info.torrent_info['info_hash']))
@@ -70,34 +68,80 @@ def download_pieces(pieces, server_socket):
     undownloaded_pieces = []
     begin = 0
     block_length = constant.PIECE_SIZE  # 16KB mỗi lần tải
-    
-    for piece in pieces:
-        attempt = 0
-        while attempt < constant.MAX_RETRIES:
-            request_msg = handshake.construct_request_message(piece, begin, block_length)
-            server_socket.sendall(request_msg)
-            try:
-                print("Waiting for message...")
-                message_length, message_type, payload = utils.receive_message(server_socket)
-                print("Message length:", message_length)
-                print("Message type:", message_type)
-                
-                if handshake.client_handle_block(server_socket, message_type, payload):
-                    break  # Thành công, thoát vòng lặp thử lại
-                else:
-                    attempt += 1
-            
-            except socket.timeout:
-                attempt += 1
-            except (socket.error, ConnectionResetError, BrokenPipeError):
-                return undownloaded_pieces
-        
-        if attempt == constant.MAX_RETRIES:
-            undownloaded_pieces.append(piece)
-    
-    return undownloaded_pieces
-            
 
+    for piece in pieces:
+        if piece is not None:
+            print(piece)
+            attempt = 0
+            while attempt < constant.MAX_RETRIES:
+                request_msg = handshake.construct_request_message(piece, begin, block_length)
+                server_socket.sendall(request_msg)
+                try:
+                    message_length, message_type, payload = utils.receive_message(server_socket)
+                    print("Message length request:", message_length)
+                    print("Message type request:", message_type)
+                    if handshake.client_handle_block(server_socket, message_type, payload):
+                        break  # Thành công, thoát vòng lặp thử lại
+                    else:
+                        attempt += 1
+
+                except socket.timeout:
+                    attempt += 1
+                except (socket.error, ConnectionResetError, BrokenPipeError):
+                    return undownloaded_pieces
+
+            if attempt == constant.MAX_RETRIES:
+                undownloaded_pieces.append(piece)
+
+    return undownloaded_pieces
+
+
+def download_pieces_threaded(pieces, sock, ip, port, downloading):
+    """Hàm chạy trên thread để tải dữ liệu từ peer"""
+    with downloading_lock:
+        pieces_to_download = [piece for piece in pieces if piece not in downloading]
+        downloading.extend(pieces_to_download)
+
+    if not pieces_to_download:
+        print(f"Skipping {ip}:{port} as all pieces are being downloaded by other threads.")
+        return []
+
+    print(f"Starting download from {ip}:{port} for pieces: {pieces_to_download}")
+    undownloaded_pieces = download_pieces(pieces_to_download, sock)
+    print(f"Finished downloading from {ip}:{port}, remaining: {undownloaded_pieces}")
+
+    with downloading_lock:
+        for piece in pieces_to_download:
+            if piece in downloading:
+                downloading.remove(piece)
+
+    return undownloaded_pieces
+
+
+def start_downloading(sorted_data, selected_servers, downloading):
+    """Hàm chính để tạo thread và quản lý tải dữ liệu."""
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = []
+
+        for index, value in sorted_data:
+            if not value:
+                continue
+
+            ip, port, sock = value[0]
+
+            for server_info, pieces in selected_servers:
+                if ip == server_info[0] and port == server_info[1]:
+                    with downloading_lock:
+                        pieces = [piece for piece in pieces if piece not in downloading]
+                    if not pieces:
+                        break
+
+                    future = executor.submit(download_pieces_threaded, pieces, sock, ip, port, downloading)
+                    futures.append(future)
+                    break
+
+        for future in futures:
+            print(future.result())
 
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(
@@ -167,24 +211,7 @@ if __name__ == "__main__":
     
     sorted_data = sorted(peer_pieces.items(), key=lambda x: len(x[1]))
     selected_servers = select_servers(peer_pieces)
-    for index, value in sorted_data:
-        if len(value):
-            ip, port, sock = value[0]
-            for server_info, pieces in selected_servers:  # server_info[2] = socket object
-                if ip == server_info[0] and port == server_info[1]:
-                    print(f"Downloading list {downloading}")
-                    pieces = [piece for piece in pieces if piece not in downloading]
-                    # download the pieces from the server_info[2]
-                    undownloaded_pieces = download_pieces(pieces, sock) # use thread
-                    # ip, port new peer
-                    
-                    print(f"Downloading pieces {pieces} from server {server_info[0]}")
-                    # append the piece that will be downloaded with this peer
-                    for piece in pieces:
-                        if piece not in downloading:
-                            downloading.append(piece)
-                    break
-    
+    start_downloading(sorted_data, selected_servers, downloading)
 
     # For server running
     serverport = int(args.server_port)

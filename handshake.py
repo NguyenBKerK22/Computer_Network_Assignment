@@ -75,35 +75,34 @@ def construct_cancel_message(index, begin, length):
     return length_bytes + b'\x08' + payload
 
 def client_handle_block(socket, message_type, payload):
-    print("[f:client_handle_block] Received block")
     index_response = int.from_bytes(payload[:4], 'big')
     length = int.from_bytes(payload[4:8], 'big')
     block = payload[8:]
-    print(len(block))
-    print(index_response)
+    print("Index:", index_response)
+    print("Length:", length)
     if node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20] == hashlib.sha1(block).digest():
-        # utils.insert_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
-        utils.map_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
+        utils.insert_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
+        # utils.map_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
         return True
     else:
         return False
-def server_handle_message(message_type, payload, conn, torrent_info):
+def server_handle_message(message_type, payload, conn, addr, torrent_info):
     if message_type[0] == 4:  # Have (client -> server)
         piece_index = int.from_bytes(payload, 'big')
         print(f"[HAVE]")
     elif message_type[0] == 6:  # Request (client -> server)
-        index = int.from_bytes(payload[:4], 'big')
+        index_response = int.from_bytes(payload[:4], 'big')
         begin = int.from_bytes(payload[4:8], 'big')
         length = int.from_bytes(payload[8:], 'big')
-        # read file from index * PIECE_SIZE to index * PIECE_SIZE + length
+
         with open(os.path.join(f"./{node_info.node_folder}/files/", torrent_info["file_name"]), 'rb') as f:
-            f.seek(index * constant.PIECE_SIZE + begin)
+            print("POSITION: ", index_response * constant.PIECE_SIZE + begin)
+            print("SEEK POSITION: ", constant.PIECE_SIZE)
+            f.seek(index_response * length + begin)
             block = f.read(length)
-        print(len(block))
-        block_message = construct_block_message(index, len(block), block)
+        block_message = construct_block_message(index_response, len(block), block)
         conn.sendall(block_message)
         f.close()
-        print(f"[REQUEST]")
     elif message_type[0] == 8:  # Cancel (client -> server)
         index = int.from_bytes(payload[:4], 'big')
         begin = int.from_bytes(payload[4:8], 'big')

@@ -23,7 +23,6 @@ def thread_server(host, port):
     serversocket.bind((host, port))
 
     serversocket.listen(10)
-    serversocket.settimeout(10)
 
     while True:
         print("Wait for connection from other peers...")
@@ -84,52 +83,45 @@ def new_message_incoming(addr, conn):
         # Assume all pieces are available
         [1] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"])
     )
-    print(bitfield_message)
     if bitfield_message == b'':
         conn.close()
         return
     conn.sendall(bitfield_message)
-    print(f"Sent bitfield to {addr}")
 
     # Initialize connection state
     am_interested = False
     am_choking = True
     peer_interested = False
     peer_choking = True
-    [
-        { # piece 1
-            "peers": ["192.168.1.1:5555", "192.168.1.233:9999"]
-        },
-        { # piece 2
-            "peers" : None
-        },
-        { # piece 3
-            "peers": ["192.168.1.1:5555"]
-        }
-    ]
 
     # TODO: create timeout for server
     while (1):
-        message_length_bytes = conn.recv(4)
-        if not message_length_bytes:
-            print(f"Connection closed by server {addr}")
-            # node.peer_connections.pop(addr, None)
-            return
-        message_length = int.from_bytes(message_length_bytes, 'big')
-        if message_length == 0:
-            print(f"Received keep-alive from server {addr}")
-            continue
-        # receive message type
-        message_type = conn.recv(1)
-        if not message_type:
-            print(f"Connection closed by server {addr}")
-            break
-        # receive payload
-        if message_length > 1:
-            payload = conn.recv(message_length - 1)
-        else:
-            payload = b''
+        try:
+            message_length_bytes = conn.recv(4)
+             # print(message_length_bytes)
+            if not message_length_bytes:
+                print(f"Connection closed by server {addr}")
+                # node.peer_connections.pop(addr, None)
+                return
+            message_length = int.from_bytes(message_length_bytes, 'big')
+            print(f"Message length: {message_length}")
+            if message_length == 0:
+                print(f"Received keep-alive from server {addr}")
+                continue
+            # receive message type
+            message_type = conn.recv(1)
+            print(f"Message type: {message_type}")
+            if not message_type:
+                print(f"Connection closed by server {addr}")
+                break
+            # receive payload
+            if message_length > 1:
+                payload = conn.recv(message_length - 1)
+            else:
+                payload = b''
 
-        handshake.server_handle_message(message_type, payload, conn, addr, torrent_info)
+            handshake.server_handle_message(message_type, payload, conn, addr, torrent_info)
+        except socket.error as e:
+            break
 
 
