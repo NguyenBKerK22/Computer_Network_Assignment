@@ -14,7 +14,7 @@ import hashlib
 import os
 import handshake
 from concurrent.futures import ThreadPoolExecutor
-
+from collections import defaultdict
 # Create peer infomation
 peerip = utils.get_host_default_interface_ip()
 peerid = node_info.PeerId
@@ -25,8 +25,21 @@ peer_pieces = {}
 peer_pieces_lock = threading.Lock()
 
 
+def select_servers(piece_map):
+    server_pieces = defaultdict(list)
+
+    # Gom nhóm pieces theo từng server
+    for piece, servers in piece_map.items():
+        for server in servers:
+            server_pieces[server].append(piece)
+
+    # Sắp xếp server theo số lượng pieces mà nó có (ưu tiên server có ít pieces nhất)
+    sorted_servers = sorted(server_pieces.items(), key=lambda x: len(x[1]))
+
+    # Kết quả: danh sách server và các pieces tương ứng
+    return sorted_servers
+
 def client_handshake_bitfield(serverip, serverport):
-    print("hehe")
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print(serverip)
     print(serverport)
@@ -49,8 +62,16 @@ def client_handshake_bitfield(serverip, serverport):
                if has_piece == 1:
                    if piece_index not in peer_pieces:
                        peer_pieces[piece_index] = []
-                   peer_pieces[piece_index].append((serverip, serverport))
+                   peer_pieces[piece_index].append((serverip, serverport, client_socket))
        break
+
+def download_pieces(piece_index, socket):
+    if socket is None:
+        begin = 0
+        block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
+        request_msg = handshake.construct_request_message(piece_index, begin, block_length)
+        socket.sendall(request_msg)
+    
 
 
 if __name__ == "__main__":
@@ -91,7 +112,7 @@ if __name__ == "__main__":
         # 'http://192.168.31.147:22236',
         'http://10.0.135.103:22236',
         # 'http://192.168.31.147:22236',
-        'http://10.0.120.133:22236',
+        # 'http://10.0.120.133:22236',
         # 'http://192.168.1.106:22236',
         torrent_info['info_hash'],
         torrent_info['file_length'],
@@ -114,22 +135,29 @@ if __name__ == "__main__":
                     executor.submit(client_handshake_bitfield, peer[b'ip'], peer[b'port']))
             for hand in handshakes:
                 hand.result()
-    # After have a list of pieces
-    # For client running
-    # # servers = {}
-    with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
-        futures = []
-        for piece_index, server_list in peer_pieces.items():
-            if not server_list:
-                continue
-            serverip, serverport = server_list[0]  # Chọn server đầu tiên
-            futures.append(executor.submit(client.thread_client_new, piece_index, serverip, serverport, piece_index))
 
-        # Chờ tất cả các thread hoàn thành
-        # for future in futures:
-        #     future.result()
+    # Downloading
+    downloading = []
+    # sort data by the number of elements in each list
+    sorted_data = sorted(peer_pieces.items(), key=lambda x: len(x[1]))
+    selected_servers = select_servers(peer_pieces)
+    for index, value in sorted_data:
+        if len(value):
+            ip, port, sock = value[0]
+            for server_info, pieces in selected_servers:  # server_info[2] = socket object
+                if ip == server_info[0] and port == server_info[1]:
+                    print(f"Downloading list {downloading}")
+                    pieces = [piece for piece in pieces if piece not in downloading]
+                    # download the pieces from the server_info[2]
 
-    # # For server running
+                    print(f"Sent request for piece {index} (offset {begin}, length {block_length})")
+                    print(f"Downloading pieces {pieces} from server {server_info[0]}")
+                    # append the piece that will be downloaded with this peer
+                    for piece in pieces:
+                        if piece not in downloading:
+                            downloading.append(piece)
+                    break
+    # For server running
     serverport = int(args.server_port)
     tserver = threading.Thread(target=server.thread_server, args=(peerip, serverport))
     tserver.start()

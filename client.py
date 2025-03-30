@@ -63,7 +63,7 @@ def thread_client(id, serverip, serverport):
        handshake.client_handle_message(client_socket, message_type, payload)
 
 
-def thread_client_new(id, serverip, serverport, index_of_pieces):
+def thread_client_new(id, serverip, serverport, list_of_pieces):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((serverip, serverport))
 

@@ -3,6 +3,7 @@ import uuid
 import constant
 import struct
 import mmap
+import time
 def get_host_default_interface_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:

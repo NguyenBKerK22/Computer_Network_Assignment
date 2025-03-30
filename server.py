@@ -23,6 +23,8 @@ def thread_server(host, port):
     serversocket.bind((host, port))
 
     serversocket.listen(10)
+    serversocket.settimeout(10)
+
     while True:
         print("Wait for connection from other peers...")
         conn, addr = serversocket.accept()
@@ -99,7 +101,7 @@ def new_message_incoming(addr, conn):
         message_length_bytes = conn.recv(4)
         if not message_length_bytes:
             print(f"Connection closed by server {addr}")
-            node.peer_connections.pop(addr, None)
+            # node.peer_connections.pop(addr, None)
             return
         message_length = int.from_bytes(message_length_bytes, 'big')
         if message_length == 0:
