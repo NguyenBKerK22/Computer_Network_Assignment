@@ -23,6 +23,8 @@ def thread_server(host, port):
     serversocket.bind((host, port))
 
     serversocket.listen(10)
+    serversocket.settimeout(10)
+
     while True:
         print("Wait for connection from other peers...")
         conn, addr = serversocket.accept()
