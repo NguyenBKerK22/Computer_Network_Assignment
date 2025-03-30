@@ -74,49 +74,19 @@ def construct_cancel_message(index, begin, length):
     length_bytes = (1 + len(payload)).to_bytes(4, 'big')
     return length_bytes + b'\x08' + payload
 
-def client_handle_message(socket, message_type, payload):
-    global diff_indexes
-    global index
-    if message_type == 5:  # Bitfield (server -> client)
-        recv_file_pieces = revert_bitfield_message(payload)
-        # compare with file_pieces
-        diff_indexes = [i for i, (local, peer) in enumerate(zip(node_info.downloaded_pieces, recv_file_pieces)) if local == 0 and peer == 1]
-        # For example, request the first block of the piece:
-        begin = 0
-        block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
-
-        print(f"hihihihihi: {diff_indexes}")
-        if diff_indexes:
-            request_msg = construct_request_message(diff_indexes[index], begin, block_length)
-            socket.sendall(request_msg)
-            
-            # set timeout
-            socket.settimeout(constant.TIMEOUT_REQUEST)
-            
-            index = index + 1
-        print(f"Sent request for piece {index} (offset {begin}, length {block_length})")
-
-    elif message_type == 7:  # block (server -> client)
-        print("receive block")
-        index_response = int.from_bytes(payload[:4], 'big')
-        length = int.from_bytes(payload[4:8], 'big')
-        block = payload[8:]
-        print(len(block))
-        print(index_response)
-        utils.insert_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
-        if index != len(diff_indexes):
-            begin = 0
-            block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
-
-            request_msg = construct_request_message(diff_indexes[index], begin, block_length)
-            index = index + 1
-            socket.sendall(request_msg)
-            
-            # set timeout
-            socket.settimeout(constant.TIMEOUT_REQUEST)
-            
-            print(f"Sent request XXXX for piece {index} (offset {begin}, length {block_length})")
-
+def client_handle_block(socket, message_type, payload):
+    print("[f:client_handle_block] Received block")
+    index_response = int.from_bytes(payload[:4], 'big')
+    length = int.from_bytes(payload[4:8], 'big')
+    block = payload[8:]
+    print(len(block))
+    print(index_response)
+    if node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20] == hashlib.sha1(block).digest():
+        # utils.insert_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
+        utils.map_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
+        return True
+    else:
+        return False
 def server_handle_message(message_type, payload, conn, torrent_info):
     if message_type[0] == 4:  # Have (client -> server)
         piece_index = int.from_bytes(payload, 'big')

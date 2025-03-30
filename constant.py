@@ -6,3 +6,5 @@ PIECE_SIZE = 2**4 * 1024 # 512KB
 
 TIMEOUT_BITFIELD = 2  # seconds
 TIMEOUT_REQUEST = 1  # seconds
+
+MAX_RETRIES = 3  # Số lần thử lại nếu mất kết nối

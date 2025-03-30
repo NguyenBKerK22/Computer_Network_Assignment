@@ -65,13 +65,38 @@ def client_handshake_bitfield(serverip, serverport):
                    peer_pieces[piece_index].append((serverip, serverport, client_socket))
        break
 
-def download_pieces(piece_index, socket):
-    if socket is None:
-        begin = 0
-        block_length = constant.PIECE_SIZE  # e.g., 16384 bytes (16KB)
-        request_msg = handshake.construct_request_message(piece_index, begin, block_length)
-        socket.sendall(request_msg)
+def download_pieces(pieces, server_socket):
+    # return array of pieces undownloaded
+    undownloaded_pieces = []
+    begin = 0
+    block_length = constant.PIECE_SIZE  # 16KB mỗi lần tải
     
+    for piece in pieces:
+        attempt = 0
+        while attempt < constant.MAX_RETRIES:
+            request_msg = handshake.construct_request_message(piece, begin, block_length)
+            server_socket.sendall(request_msg)
+            try:
+                print("Waiting for message...")
+                message_length, message_type, payload = utils.receive_message(server_socket)
+                print("Message length:", message_length)
+                print("Message type:", message_type)
+                
+                if handshake.client_handle_block(server_socket, message_type, payload):
+                    break  # Thành công, thoát vòng lặp thử lại
+                else:
+                    attempt += 1
+            
+            except socket.timeout:
+                attempt += 1
+            except (socket.error, ConnectionResetError, BrokenPipeError):
+                return undownloaded_pieces
+        
+        if attempt == constant.MAX_RETRIES:
+            undownloaded_pieces.append(piece)
+    
+    return undownloaded_pieces
+            
 
 
 if __name__ == "__main__":
@@ -139,6 +164,7 @@ if __name__ == "__main__":
     # Downloading
     downloading = []
     # sort data by the number of elements in each list
+    
     sorted_data = sorted(peer_pieces.items(), key=lambda x: len(x[1]))
     selected_servers = select_servers(peer_pieces)
     for index, value in sorted_data:
@@ -149,14 +175,17 @@ if __name__ == "__main__":
                     print(f"Downloading list {downloading}")
                     pieces = [piece for piece in pieces if piece not in downloading]
                     # download the pieces from the server_info[2]
-
-                    print(f"Sent request for piece {index} (offset {begin}, length {block_length})")
+                    undownloaded_pieces = download_pieces(pieces, sock) # use thread
+                    # ip, port new peer
+                    
                     print(f"Downloading pieces {pieces} from server {server_info[0]}")
                     # append the piece that will be downloaded with this peer
                     for piece in pieces:
                         if piece not in downloading:
                             downloading.append(piece)
                     break
+    
+
     # For server running
     serverport = int(args.server_port)
     tserver = threading.Thread(target=server.thread_server, args=(peerip, serverport))
