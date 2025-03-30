@@ -114,17 +114,15 @@ if __name__ == "__main__":
             for hand in handshakes:
                 hand.result()
     # After have a list of pieces
-    print(peer_pieces)
     # For client running
     # # servers = {}
-    print("JEJE")
     with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
         futures = []
         for piece_index, server_list in peer_pieces.items():
             if not server_list:
                 continue
             serverip, serverport = server_list[0]  # Chọn server đầu tiên
-            # futures.append(executor.submit(client.thread_client_new, piece_index, serverip, serverport, piece_index))
+            futures.append(executor.submit(client.thread_client_new, piece_index, serverip, serverport, piece_index))
 
         # Chờ tất cả các thread hoàn thành
         # for future in futures:

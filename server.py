@@ -12,6 +12,9 @@ import math
 #########################################
 # Thread Server
 #########################################
+connected_peers = set()
+
+
 def thread_server(host, port):
     print("Thread server listening on: {}:{}".format(host, port))
 
@@ -75,7 +78,7 @@ def new_message_incoming(addr, conn):
     # Send bitfield back
     bitfield_message = handshake.construct_bitfield_message(
         # Assume all pieces are available
-        [1] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"]) 
+        [1] * math.ceil(torrent_info["file_length"] / torrent_info["piece_length"])
     )
     print(bitfield_message)
     if bitfield_message == b'':
