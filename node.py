@@ -3,6 +3,7 @@ import time
 import argparse
 import threading
 import math
+import uuid
 import parsers
 import utils
 import client
@@ -69,10 +70,7 @@ if __name__ == "__main__":
 
     # CLIENT: Parse torrent file
     node_info.file_path = args.file_path
-    print(os.path.join(node_info.node_folder, args.file_path))
-    # torrent_info = parsers.parse_torrent(os.path.join(node_info.node_folder, args.file_path))
     torrent_info = parsers.parse_torrent(f"./{node_info.node_folder}/torrents/{node_info.file_path}")
-    print(len(torrent_info['pieces'].hex()))
     # CLIENT: save torrent information
     node_info.torrent_info = torrent_info
     # CLIENT: init downloaded pieces
@@ -92,6 +90,8 @@ if __name__ == "__main__":
     data_response = client.send_request_to_tracker(
         # 'http://192.168.31.147:22236',
         'http://10.0.135.103:22236',
+        # 'http://192.168.31.147:22236',
+        'http://10.0.120.133:22236',
         # 'http://192.168.1.106:22236',
         torrent_info['info_hash'],
         torrent_info['file_length'],
@@ -105,6 +105,7 @@ if __name__ == "__main__":
     # Get list of pieces
     MAX_THREADS = 10
     peers = parsers.parse_response(data_response)
+
     if peers:
         with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
             handshakes = []

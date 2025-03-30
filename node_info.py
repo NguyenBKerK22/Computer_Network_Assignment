@@ -7,6 +7,7 @@ def renew_peer_id():
 data_file_path = "./3mb-examplefile-com.txt"
 torrent_info = None
 PeerId = renew_peer_id()
-files = [] # List of files in peer {hash_code, file_pieces}
+files = []
 downloaded_pieces = [] # List of pieces that have been downloaded
+transfer_speed = {}
 node_folder = None
