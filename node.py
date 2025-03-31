@@ -224,7 +224,10 @@ if __name__ == "__main__":
         int(args.server_port),
         peerid,
         peerip,
-        "started"
+        "started",
+        0,
+        0,
+        math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
     )
 
     # INTERVAL
