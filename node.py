@@ -75,8 +75,9 @@ def download_pieces(pieces, server_socket):
             attempt = 0
             while attempt < constant.MAX_RETRIES:
                 request_msg = handshake.construct_request_message(piece, begin, block_length)
-                server_socket.sendall(request_msg)
+                
                 try:
+                    server_socket.sendall(request_msg)
                     message_length, message_type, payload = utils.receive_message(server_socket)
                     print("Message length request:", message_length)
                     print("Message type request:", message_type)
