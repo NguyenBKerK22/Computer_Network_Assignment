@@ -15,6 +15,7 @@ import os
 import handshake
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
+import copy
 # Create peer infomation
 peerip = utils.get_host_default_interface_ip()
 peerid = node_info.PeerId
@@ -65,7 +66,7 @@ def client_handshake_bitfield(serverip, serverport):
 
 def download_pieces(pieces, server_socket):
     # return array of pieces undownloaded
-    undownloaded_pieces = []
+    undownloaded_pieces = copy.deepcopy(pieces)
     begin = 0
     block_length = constant.PIECE_SIZE  # 16KB mỗi lần tải
 
@@ -82,6 +83,7 @@ def download_pieces(pieces, server_socket):
                     print("Message length request:", message_length)
                     print("Message type request:", message_type)
                     if handshake.client_handle_block(server_socket, message_type, payload):
+                        undownloaded_pieces.remove(piece)
                         break  # Thành công, thoát vòng lặp thử lại
                     else:
                         attempt += 1
@@ -90,9 +92,6 @@ def download_pieces(pieces, server_socket):
                     attempt += 1
                 except (socket.error, ConnectionResetError, BrokenPipeError):
                     return undownloaded_pieces
-
-            if attempt == constant.MAX_RETRIES:
-                undownloaded_pieces.append(piece)
 
     return undownloaded_pieces
 
@@ -107,10 +106,12 @@ def download_pieces_threaded(pieces, sock, ip, port, downloading):
         print(f"Skipping {ip}:{port} as all pieces are being downloaded by other threads.")
         return []
 
-    print(f"Starting download from {ip}:{port} for pieces: {pieces_to_download}")
+    print(f"Starting download from {ip}:{port} for pieces: {len(pieces_to_download)}")
     undownloaded_pieces = download_pieces(pieces_to_download, sock)
-    print(f"Finished downloading from {ip}:{port}, remaining: {undownloaded_pieces}")
-
+    print(f"Finished downloading from {ip}:{port}")
+     
+     
+    print(f"Undownloaded pieces: {len(undownloaded_pieces)}")
     with downloading_lock:
         for piece in undownloaded_pieces:
             if piece in downloading:
@@ -123,9 +124,11 @@ def start_downloading(sorted_data, selected_servers, downloading):
     """Hàm chính để tạo thread và quản lý tải dữ liệu."""
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
+        
         server_index = 0
         while sorted_data and server_index < len(selected_servers):
             print("WHILE")
+            flag = 0
             for index, value in sorted_data:
                 print("FOR")
                 # print("SORTED DATA")
@@ -145,20 +148,26 @@ def start_downloading(sorted_data, selected_servers, downloading):
                         with downloading_lock:
                             pieces = [piece for piece in pieces if piece not in downloading]
                         if not pieces:
+                            print("VCL")
                             break
 
                         future = executor.submit(download_pieces_threaded, pieces, sock, ip, port, downloading)
-                            
+                        if not future:
+                            flag = 1
                         futures.append(future.result())
                         break
+                if flag == 1:
+                    print("BREAK CC")
+                    break
 
             # Reconstruct the code to avoid modifying sorted_data during iteration
             for future in futures:
                 # Keep only those piece_data for which the piece index exists in the current future result.
-                sorted_data = [piece_data for piece_data in sorted_data if piece_data[0] in future]
+                sorted_data = [piece_data for piece_data in sorted_data if piece_data[0] not in future]
 
             server_index += 1
             print("Switching to next server...")
+            print("sorted_data:", 9999, "server_index:", server_index, "len(selected_servers):", len(selected_servers))
         if sorted_data:
             print("All online peer servers are disconnected or have no pieces. Please retry later !!!")
             return
