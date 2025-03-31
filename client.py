@@ -10,47 +10,54 @@ import parsers
 import utils
 import node
 import time
+
+from node_info import bitfield_data
+
+
 # Function to send request to tracker
 
-def send_request_to_tracker(announce, info_hash, file_length, piece_length, port, peerid, peerip, event):
+def send_request_to_tracker(announce, info_hash, file_length, piece_length, port, peerid, peerip, event, uploaded, downloaded , left):
     # Các tham số gửi lên tracker
     params = {
         "info_hash": info_hash,
         "peer_id": peerid,
         "peer_ip": peerip,
         "port": port,
-        "uploaded": 0,
-        "downloaded": 0,
-        "left": math.ceil(file_length / piece_length),
+        "uploaded": uploaded,
+        "downloaded": downloaded,
+        "left": left,
         "compact": 0,
         "event": event
     }
     try:
         print("Params:")
         print(params)
-        response = requests.get(announce, params=params, timeout=10)
-        if response.status_code == 200:
-            print(f"✅")
-            decoded = bencodepy.decode(response.content)
-            if params['compact'] == 1:
-                print(decoded[b'peers'].hex())
+
+        # Sử dụng `with` để tự động đóng kết nối
+
+        with requests.get(announce, params=params, timeout=10) as response:
+            if response.status_code == 200:
+                print(f"✅")
+                decoded = bencodepy.decode(response.content)
+                print(decoded[b'peers'] if params['compact'] == 0 else decoded[b'peers'].hex())
+                return decoded
             else:
-                print(decoded[b'peers'])
-            return decoded  # Trả về dữ liệu dạng binary
-        else:
-            print(f"⚠️ Tracker request failed with status {response.status_code}")
-            return None
+                print(f"⚠️ Tracker request failed with status {response.status_code}")
+                return None
+
     except requests.RequestException as e:
         if event == "started":
             print(f"❌ Error connecting to tracker: {e}")
         return None
-
 def send_alert_to_tracker(interval):
     if interval > 0:
         print(f"⏳ Sending alert to tracker every {interval} seconds...")
         while True:
             time.sleep(interval)
             # Gửi yêu cầu đến tracker
+            downloaded = sum(node_info.bitfield_data[node_info.torrent_info['info_hash']])
+            left = len(node_info.bitfield_data[node_info.torrent_info['info_hash']]) - downloaded
+            event = "completed" if left == 0 else "downloading"
             response = send_request_to_tracker("http://10.0.197.5:22236",
                                                node_info.torrent_info['info_hash'],
                                                node_info.torrent_info['file_length'],
@@ -58,7 +65,8 @@ def send_alert_to_tracker(interval):
                                                node_info.server_port,
                                                node_info.PeerId,
                                                node_info.peerip,
-                                               "CC")
-            if response is None:
-                break
+                                               event,
+                                               uploaded= 0,
+                                               downloaded= downloaded,
+                                               left= left)
             

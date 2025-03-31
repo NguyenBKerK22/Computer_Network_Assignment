@@ -11,7 +11,6 @@ torrents = {}
 
 
 def new_connection(addr, conn):
-    print(addr)
     while True:
         try:
             data = conn.recv(1024).decode()
@@ -65,9 +64,10 @@ def new_connection(addr, conn):
                         "event": event,
                         "last_seen": current_time
                     })
+                    conn.close()
                 else:
                     # Thêm peer mới vào danh sách
-                    response_data = {"interval": 1800}
+                    response_data = {"interval": 5}
                     if compact_mode == 1:
                         compact_peers = b"".join(
                             socket.inet_aton(peer["ip"]) + peer["port"].to_bytes(2, "big")
@@ -80,6 +80,7 @@ def new_connection(addr, conn):
                     bencoded_response = bencodepy.encode(response_data)
                     conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n" + bencoded_response)
                     conn.close()
+                    print(current_time)
                     peers.append({
                         "peer_id": peer_id,
                         "ip": peer_ip,
@@ -98,20 +99,18 @@ def new_connection(addr, conn):
             print('Error occurred!')
             break
 
-# def cleanup_inactive_peers():
-#     """Periodically remove peers that haven't reannounced within their interval."""
-#     while True:
-#         current_time = time.time()
-#         for info_hash, peer_list in list(torrents.items()):
-#             # Remove peers that haven't reannounced within a grace period (e.g., interval + 300 seconds)
-#             active_peers = [
-#                 peer for peer in peer_list
-#                 if current_time - peer.get("last_seen", 0) <= (300)
-#             ]
-#             torrents[info_hash] = active_peers
-#             print(torrents[info_hash])
-#         time.sleep(300)  # run cleanup every 5 minutes
-#
+def cleanup_inactive_peers():
+    """Periodically remove peers that haven't reannounced within their interval."""
+    while True:
+        for peer in peers:
+            # Remove peers that haven't reannounced within a grace period (e.g., interval + 300 seconds)
+            current_time = time.time()
+            if current_time - peer["last_seen"] > 20:
+                peers.remove(peer)
+
+        print(peers)
+        time.sleep(5)  # run cleanup every 5 minutes
+
 
 def tracker_server(host, port):
     serversocket = socket.socket()
@@ -119,11 +118,10 @@ def tracker_server(host, port):
 
     serversocket.listen(10)
 
-    # cleanup_thread = Thread(target=cleanup_inactive_peers, daemon=True)
-    # cleanup_thread.start()
+    cleanup_thread = Thread(target=cleanup_inactive_peers, daemon=True)
+    cleanup_thread.start()
 
     while True:
-        print("Waiting for connection...")
         conn, addr = serversocket.accept()
         nconn = Thread(target=new_connection, args=(addr, conn))
         nconn.start()
