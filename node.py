@@ -111,7 +111,7 @@ def download_pieces_threaded(pieces, sock, ip, port, downloading):
     print(f"Finished downloading from {ip}:{port}, remaining: {undownloaded_pieces}")
 
     with downloading_lock:
-        for piece in pieces_to_download:
+        for piece in undownloaded_pieces:
             if piece in downloading:
                 downloading.remove(piece)
 
@@ -122,26 +122,43 @@ def start_downloading(sorted_data, selected_servers, downloading):
     """Hàm chính để tạo thread và quản lý tải dữ liệu."""
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
+        server_index = 0
+        while sorted_data and server_index < len(selected_servers):
+            for index, value in sorted_data:
+                # print("SORTED DATA")
+                # print(sorted_data)
+                if not value:
+                    continue
+                
+                try:
+                    ip, port, sock = value[server_index]
+                except IndexError:
+                    print(f"No more servers available for this piece [{index}].")
+                    continue
+                
+                for server_info, pieces in selected_servers:
+                    if ip == server_info[0] and port == server_info[1]:
+                        with downloading_lock:
+                            pieces = [piece for piece in pieces if piece not in downloading]
+                        if not pieces:
+                            break
 
-        for index, value in sorted_data:
-            if not value:
-                continue
-
-            ip, port, sock = value[0]
-
-            for server_info, pieces in selected_servers:
-                if ip == server_info[0] and port == server_info[1]:
-                    with downloading_lock:
-                        pieces = [piece for piece in pieces if piece not in downloading]
-                    if not pieces:
+                        future = executor.submit(download_pieces_threaded, pieces, sock, ip, port, downloading)
+                            
+                        futures.append(future.result())
                         break
 
-                    future = executor.submit(download_pieces_threaded, pieces, sock, ip, port, downloading)
-                    futures.append(future)
-                    break
+            # Reconstruct the code to avoid modifying sorted_data during iteration
+            for future in futures:
+                # Keep only those piece_data for which the piece index exists in the current future result.
+                sorted_data = [piece_data for piece_data in sorted_data if piece_data[0] in future]
 
-        for future in futures:
-            print(future.result())
+            server_index += 1
+        
+        if sorted_data:
+            print("All online peer servers are disconnected or have no pieces. Please retry later !!!")
+            return
+            
 
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(
@@ -177,10 +194,15 @@ if __name__ == "__main__":
     constant.PIECE_SIZE = torrent_info['piece_length']
     print(f"Piece size: {constant.PIECE_SIZE}")
 
+    # SERVER
+    serverport = int(args.server_port)
+    tserver = threading.Thread(target=server.thread_server, args=(peerip, serverport))
+    tserver.start()
+
     data_response = client.send_request_to_tracker(
-        # 'http://192.168.31.147:22236',
-        'http://10.0.135.103:22236',
-        # 'http://192.168.31.147:22236',
+        'http://192.168.31.147:22236',
+        # 'http://10.0.135.103:22236',
+        # 'http://192.168.31.77:22236',
         # 'http://10.0.120.133:22236',
         # 'http://192.168.1.106:22236',
         torrent_info['info_hash'],
@@ -209,12 +231,12 @@ if __name__ == "__main__":
     downloading = []
     # sort data by the number of elements in each list
     
+    
+    
     sorted_data = sorted(peer_pieces.items(), key=lambda x: len(x[1]))
     selected_servers = select_servers(peer_pieces)
     start_downloading(sorted_data, selected_servers, downloading)
 
     # For server running
-    serverport = int(args.server_port)
-    tserver = threading.Thread(target=server.thread_server, args=(peerip, serverport))
-    tserver.start()
+    
     tserver.join()
