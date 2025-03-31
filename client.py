@@ -26,6 +26,8 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
         "event": event
     }
     try:
+        print("Params:")
+        print(params)
         response = requests.get(announce, params=params, timeout=10)
         if response.status_code == 200:
             print(f"✅")
@@ -46,8 +48,16 @@ def send_alert_to_tracker(interval):
     if interval > 0:
         print(f"⏳ Sending alert to tracker every {interval} seconds...")
         while True:
+            time.sleep(interval)
             # Gửi yêu cầu đến tracker
-            response = send_request_to_tracker(node_info.torrent_info['announce'], node_info.torrent_info['info_hash'], node_info.torrent_info['file_length'], node_info.torrent_info['piece_length'], node_info.server_port, node_info.PeerId, node_info.peerip, "CC")
+            response = send_request_to_tracker("http://192.168.31.147:22236",
+                                               node_info.torrent_info['info_hash'],
+                                               node_info.torrent_info['file_length'],
+                                               node_info.torrent_info['piece_length'],
+                                               node_info.server_port,
+                                               node_info.PeerId,
+                                               node_info.peerip,
+                                               "CC")
             if response is None:
                 break
-            time.sleep(interval)
+            

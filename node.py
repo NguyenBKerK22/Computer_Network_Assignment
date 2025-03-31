@@ -207,6 +207,7 @@ if __name__ == "__main__":
         load_all_files = load_all_torrents(f"./seed/torrents")
 
     # SERVER
+    node_info.server_port = args.server_port
     serverport = int(args.server_port)
     tserver = threading.Thread(target=server.thread_server, args=(peerip, serverport))
     tserver.start()
@@ -228,7 +229,7 @@ if __name__ == "__main__":
 
     # INTERVAL
     node_info.interval = data_response[b'interval']
-    talert = threading.Thread(target=client.send_alert_to_tracker, args=(node_info.interval))
+    talert = threading.Thread(target=client.send_alert_to_tracker, args=(node_info.interval,))
     talert.start()
     
     # Get list of pieces
