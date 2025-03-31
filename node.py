@@ -102,7 +102,6 @@ def download_pieces(pieces, server_socket):
 
     return undownloaded_pieces
 
-
 def download_pieces_threaded(pieces, sock, ip, port, downloading):
     """Hàm chạy trên thread để tải dữ liệu từ peer"""
     with downloading_lock:
@@ -128,7 +127,6 @@ def download_pieces_threaded(pieces, sock, ip, port, downloading):
 
     return undownloaded_pieces
 
-
 def start_downloading(sorted_data, selected_servers, downloading):
     """Hàm chính để tạo thread và quản lý tải dữ liệu."""
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -136,9 +134,7 @@ def start_downloading(sorted_data, selected_servers, downloading):
         
         server_index = 0
         while sorted_data and server_index < len(selected_servers):
-            print("WHILE")
             for index, value in sorted_data:
-                print("FOR")
                 if not value:
                     continue
                 
@@ -154,26 +150,28 @@ def start_downloading(sorted_data, selected_servers, downloading):
                         with downloading_lock:
                             pieces = [piece for piece in pieces if piece not in downloading]
                         if not pieces:
-                            print("VCL")
                             break
                         future = executor.submit(download_pieces_threaded, pieces, sock, ip, port, downloading)
                         futures.append(future.result())
                         break
                 if future:
-                    print("BREAK CC")
                     break
 
             # Reconstruct the code to avoid modifying sorted_data during iteration
             for future in futures:
                 sorted_data = [piece_data for piece_data in sorted_data if piece_data[0] not in future]
-
             server_index += 1
             print("Switching to next server...")
             print("sorted_data:", 9999, "server_index:", server_index, "len(selected_servers):", len(selected_servers))
         if sorted_data:
             print("All online peer servers are disconnected or have no pieces. Please retry later !!!")
             return
-            
+
+def load_all_torrents(directory):
+    for file in os.listdir(directory):
+        torrent_info = parsers.parse_torrent(os.path.join(directory, file))
+        node_info.files.append(torrent_info)
+
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(
         prog='node',
@@ -186,28 +184,27 @@ if __name__ == "__main__":
     args = args_parser.parse_args()
 
     # NODE: Parse node id
-    arr = ["node1", "node2", "node3", "node4", "node5"]
-    node_info.node_folder = arr[int(args.node_id) - 1]
+    arr = ["node1", "node2", "node3", "node4", "node5", "seed"]
+    if int(args.node_id) != -1:
+        node_info.node_folder = arr[int(args.node_id) - 1]
+        # CLIENT: Parse torrent file
+        node_info.file_path = args.file_path
+        torrent_info = parsers.parse_torrent(f"./{node_info.node_folder}/torrents/{node_info.file_path}")
+        # CLIENT: save torrent information
+        node_info.torrent_info = torrent_info
+        # CLIENT: init downloaded pieces
+        node_info.bitfield_data[node_info.torrent_info['info_hash']] = [0] * math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
 
-    # CLIENT: Parse torrent file
-    node_info.file_path = args.file_path
-    torrent_info = parsers.parse_torrent(f"./{node_info.node_folder}/torrents/{node_info.file_path}")
-    # CLIENT: save torrent information
-    node_info.torrent_info = torrent_info
-    # CLIENT: init downloaded pieces
-    node_info.bitfield_data[node_info.torrent_info['info_hash']] = [0] * math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
-    
-    # SERVER: load all files to mem
-    node_info.server_port = args.server_port
-    def load_all_torrents(directory):
-        for file in os.listdir(directory):
-            torrent_info = parsers.parse_torrent(os.path.join(directory, file))
-            node_info.files.append(torrent_info)
-            
-    load_all_files = load_all_torrents(f"./{node_info.node_folder}/torrents/")
+        load_all_files = load_all_torrents(f"./{node_info.node_folder}/torrents/")
 
-    constant.PIECE_SIZE = torrent_info['piece_length']
-    print(f"Piece size: {constant.PIECE_SIZE}")
+        constant.PIECE_SIZE = node_info.torrent_info['piece_length']
+        print(f"Piece size: {constant.PIECE_SIZE}")
+    else:
+        node_info.node_folder = arr[5]
+        for file in os.listdir(f"./seed/torrents"):
+            torrent_info = parsers.parse_torrent(f"./seed/torrents/{file}")
+            node_info.bitfield_data[torrent_info['info_hash']] = [1] * math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
+        load_all_files = load_all_torrents(f"./seed/torrents")
 
     # SERVER
     serverport = int(args.server_port)
@@ -250,11 +247,9 @@ if __name__ == "__main__":
     # Downloading
     downloading = []
     # sort data by the number of elements in each list
-    
     sorted_data = sorted(peer_pieces.items(), key=lambda x: len(x[1]))
     selected_servers = select_servers(peer_pieces)
     start_downloading(sorted_data, selected_servers, downloading)
 
     # For server running
-    
     tserver.join()

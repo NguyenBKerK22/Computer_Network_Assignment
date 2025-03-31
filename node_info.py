@@ -12,7 +12,7 @@ files = []
 transfer_speed = {}
 node_folder = None
 
-bitfield_data = None # Bitfield data for the torrent
+bitfield_data = {} # Bitfield data for the torrent
 
 interval = 1 # Interval for tracker requests
 
