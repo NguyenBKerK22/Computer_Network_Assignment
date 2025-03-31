@@ -108,7 +108,10 @@ def download_pieces_threaded(pieces, sock, ip, port, downloading):
 
     print(f"Starting download from {ip}:{port} for pieces: {len(pieces_to_download)}")
     undownloaded_pieces = download_pieces(pieces_to_download, sock)
-    print(f"Finished downloading from {ip}:{port}")
+    if undownloaded_pieces:
+        print("Peer has disconnected")
+    else:
+        print(f"Finished downloading from {ip}:{port}")
      
      
     print(f"Undownloaded pieces: {len(undownloaded_pieces)}")
@@ -128,11 +131,8 @@ def start_downloading(sorted_data, selected_servers, downloading):
         server_index = 0
         while sorted_data and server_index < len(selected_servers):
             print("WHILE")
-            flag = 0
             for index, value in sorted_data:
                 print("FOR")
-                # print("SORTED DATA")
-                # print(sorted_data)
                 if not value:
                     continue
                 
@@ -150,19 +150,15 @@ def start_downloading(sorted_data, selected_servers, downloading):
                         if not pieces:
                             print("VCL")
                             break
-
                         future = executor.submit(download_pieces_threaded, pieces, sock, ip, port, downloading)
-                        if not future:
-                            flag = 1
                         futures.append(future.result())
                         break
-                if flag == 1:
+                if future:
                     print("BREAK CC")
                     break
 
             # Reconstruct the code to avoid modifying sorted_data during iteration
             for future in futures:
-                # Keep only those piece_data for which the piece index exists in the current future result.
                 sorted_data = [piece_data for piece_data in sorted_data if piece_data[0] not in future]
 
             server_index += 1
