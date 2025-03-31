@@ -125,7 +125,9 @@ def start_downloading(sorted_data, selected_servers, downloading):
         futures = []
         server_index = 0
         while sorted_data and server_index < len(selected_servers):
+            print("WHILE")
             for index, value in sorted_data:
+                print("FOR")
                 # print("SORTED DATA")
                 # print(sorted_data)
                 if not value:
