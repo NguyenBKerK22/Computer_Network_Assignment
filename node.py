@@ -18,6 +18,7 @@ from collections import defaultdict
 import copy
 # Create peer infomation
 peerip = utils.get_host_default_interface_ip()
+node_info.peerip = peerip
 peerid = node_info.PeerId
 
 # Dictionary to store available pieces from peers
@@ -42,8 +43,14 @@ def select_servers(piece_map):
 
 def client_handshake_bitfield(serverip, serverport):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((serverip, serverport))
-
+    
+    try:
+        client_socket.connect((serverip, serverport))
+    except Exception as e:
+        print(f"[EXCEPT] Connection error: {e}")
+        client_socket.close()
+        return
+    
     client_socket.sendall(handshake.create_handshake_message(node_info.torrent_info['info_hash']))
     handshake_back = client_socket.recv(constant.NUM_BYTE_HANDSHAKE)
     if(handshake_back == b''):
@@ -167,7 +174,6 @@ def start_downloading(sorted_data, selected_servers, downloading):
             print("All online peer servers are disconnected or have no pieces. Please retry later !!!")
             return
             
-
 if __name__ == "__main__":
     args_parser = argparse.ArgumentParser(
         prog='node',
@@ -192,6 +198,7 @@ if __name__ == "__main__":
     node_info.bitfield_data[node_info.torrent_info['info_hash']] = [0] * math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
     
     # SERVER: load all files to mem
+    node_info.server_port = args.server_port
     def load_all_torrents(directory):
         for file in os.listdir(directory):
             torrent_info = parsers.parse_torrent(os.path.join(directory, file))
@@ -222,6 +229,11 @@ if __name__ == "__main__":
         "started"
     )
 
+    # INTERVAL
+    node_info.interval = data_response[b'interval']
+    talert = threading.Thread(target=client.send_alert_to_tracker, args=(node_info.interval))
+    talert.start()
+    
     # Get list of pieces
     MAX_THREADS = 10
     peers = parsers.parse_response(data_response)

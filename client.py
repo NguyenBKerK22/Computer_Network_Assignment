@@ -9,6 +9,7 @@ import constant
 import parsers
 import utils
 import node
+import time
 # Function to send request to tracker
 
 def send_request_to_tracker(announce, info_hash, file_length, piece_length, port, peerid, peerip, event):
@@ -41,51 +42,12 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
         print(f"❌ Error connecting to tracker: {e}")
         return None
 
-# def thread_client(id, serverip, serverport):
-#     # best_peer = node.select_best_peer()
-#     # if best_peer:
-#     #     serverip, serverport = best_peer
-#     #     print(f"Connecting to best peer: {best_peer}")
-#     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#     client_socket.connect((serverip, serverport))
-#
-#     client_socket.sendall(handshake.create_handshake_message(node_info.torrent_info['info_hash']))
-#     client_socket.settimeout(1)  # Set a timeout of 1 seconds for receiving a message
-#     try:
-#         handshake_back = client_socket.recv(constant.NUM_BYTE_HANDSHAKE)
-#     except socket.timeout:
-#         print("[Timeout]: Did not receive a handshake back in time.")
-#         print("CLOSE SOCKET")
-#         client_socket.close()
-#         return
-#     if(handshake_back == b''):
-#         print("No handshake back received. Check for your info_hash")
-#         client_socket.close()
-#         return
-#     client_socket.settimeout(constant.TIMEOUT_BITFIELD)  # Set a timeout of 1 seconds for bitfield message
-#     while True:
-#         try:
-#             print("Waiting for message...")
-#             message_length, message_type, payload = utils.receive_message(client_socket)
-#             print("Message length:", message_length)
-#             print("Message type:", message_type)
-#             handshake.client_handle_message(client_socket, message_type, payload)
-#         except socket.timeout:
-#             print("[Timeout]: Did not receive a message in time.")
-#             print("CLOSE SOCKET")
-#             client_socket.close()
-#
-
-# def thread_client_new(id, serverip, serverport, list_of_pieces):
-#     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#     client_socket.connect((serverip, serverport))
-
-#     request_msg = handshake.construct_request_message(index_of_pieces, 0, constant.PIECE_SIZE)
-#     client_socket.sendall(request_msg)
-#     while True:
-#         message_length, message_type, payload = utils.receive_message(client_socket)
-#         print("Message length:", message_length)
-#         print("Message type:", message_type)
-#         handshake.client_handle_message_new(client_socket, message_type, payload, filepath= "./node2/downloaded/3mb-examplefile-com.txt")
-
-    
+def send_alert_to_tracker(interval):
+    if interval > 0:
+        print(f"⏳ Sending alert to tracker every {interval} seconds...")
+        while True:
+            # Gửi yêu cầu đến tracker
+            response = send_request_to_tracker(node_info.torrent_info['announce'], node_info.torrent_info['info_hash'], node_info.torrent_info['file_length'], node_info.torrent_info['piece_length'], node_info.server_port, node_info.PeerId, node_info.peerip, "CC")
+            if response is None:
+                break
+            time.sleep(interval)
