@@ -41,7 +41,8 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
             print(f"⚠️ Tracker request failed with status {response.status_code}")
             return None
     except requests.RequestException as e:
-        print(f"❌ Error connecting to tracker: {e}")
+        if event == "started":
+            print(f"❌ Error connecting to tracker: {e}")
         return None
 
 def send_alert_to_tracker(interval):
@@ -50,7 +51,7 @@ def send_alert_to_tracker(interval):
         while True:
             time.sleep(interval)
             # Gửi yêu cầu đến tracker
-            response = send_request_to_tracker("http://192.168.31.147:22236",
+            response = send_request_to_tracker("http://10.0.197.5:22236",
                                                node_info.torrent_info['info_hash'],
                                                node_info.torrent_info['file_length'],
                                                node_info.torrent_info['piece_length'],

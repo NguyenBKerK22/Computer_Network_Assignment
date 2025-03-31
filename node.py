@@ -213,8 +213,8 @@ if __name__ == "__main__":
     tserver.start()
 
     data_response = client.send_request_to_tracker(
-        'http://192.168.31.147:22236',
-        # 'http://10.0.135.103:22236',
+        # 'http://192.168.31.147:22236',
+        'http://10.0.197.5:22236',
         # 'http://192.168.31.77:22236',
         # 'http://10.0.120.133:22236',
         # 'http://192.168.1.106:22236',
@@ -253,4 +253,5 @@ if __name__ == "__main__":
     start_downloading(sorted_data, selected_servers, downloading)
 
     # For server running
+    talert.join()
     tserver.join()
