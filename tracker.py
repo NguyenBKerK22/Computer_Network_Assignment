@@ -48,58 +48,6 @@ def new_connection(addr, conn):
             # elif len(query_params['peer_id'][0]) != 20:
             #     conn.sendall("HTTP/1.1 151 INVALID PEER ID\r\n".encode())
             else:
-                # print("info hash: ", query_params['info_hash'])
-                # if info_hash not in torrents:
-                #     torrents[info_hash] = []  # Initialize torrent peer list
-                # peer_list = torrents[info_hash]
-                # print(peer_list)
-                # existing_peer = next((p for p in peer_list if p["peer_id"] == peer_id), None)
-                # current_time = time.time()
-                # if existing_peer:
-                #     print("Existing")
-                #     if event == "stopped":
-                #         peer_list.remove(existing_peer)
-                #         return
-                #     existing_peer.update({
-                #         "peer_id": peer_id,
-                #         "ip": peer_ip,
-                #         "port": peer_port,
-                #         "uploaded": uploaded,
-                #         "downloaded": downloaded,
-                #         "left": left,
-                #         "event": event,
-                #         "last_seen": current_time
-                #     })
-                # else:
-                #     print("NOTExisting")
-                #     # Prepare response
-                #     response_data = {"interval": 1800}
-                #
-                #     if compact_mode == 1:
-                #         compact_peers = b"".join(
-                #             socket.inet_aton(peer["ip"]) + peer["port"].to_bytes(2, "big")
-                #             for peer in peer_list
-                #         )
-                #         response_data[b"peers"] = compact_peers
-                #     else:
-                #         response_data[b"peers"] = [{"ip": p["ip"], "peer_id": p["peer_id"], "port": p["port"]} for p in
-                #                                    peer_list]
-                #
-                #     # Encode and send response
-                #     bencoded_response = bencodepy.encode(response_data)
-                #     conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n" + bencoded_response)
-                #     conn.close()
-                #
-                #     peer_list.append({
-                #         "peer_id": peer_id,
-                #         "ip": peer_ip,
-                #         "port": peer_port,
-                #         "uploaded": uploaded,
-                #         "downloaded": downloaded,
-                #         "left": left,
-                #         "last_seen": current_time
-                #     })
-                    # Kiểm tra nếu peer đã tồn tại
                 existing_peer = next((p for p in peers if p["peer_id"] == peer_id), None)
                 current_time = time.time()
                 if existing_peer:
@@ -150,20 +98,20 @@ def new_connection(addr, conn):
             print('Error occurred!')
             break
 
-def cleanup_inactive_peers():
-    """Periodically remove peers that haven't reannounced within their interval."""
-    while True:
-        current_time = time.time()
-        for info_hash, peer_list in list(torrents.items()):
-            # Remove peers that haven't reannounced within a grace period (e.g., interval + 300 seconds)
-            active_peers = [
-                peer for peer in peer_list
-                if current_time - peer.get("last_seen", 0) <= (1800 + 300)
-            ]
-            torrents[info_hash] = active_peers
-            print(torrents[info_hash])
-        time.sleep(300)  # run cleanup every 5 minutes
-
+# def cleanup_inactive_peers():
+#     """Periodically remove peers that haven't reannounced within their interval."""
+#     while True:
+#         current_time = time.time()
+#         for info_hash, peer_list in list(torrents.items()):
+#             # Remove peers that haven't reannounced within a grace period (e.g., interval + 300 seconds)
+#             active_peers = [
+#                 peer for peer in peer_list
+#                 if current_time - peer.get("last_seen", 0) <= (300)
+#             ]
+#             torrents[info_hash] = active_peers
+#             print(torrents[info_hash])
+#         time.sleep(300)  # run cleanup every 5 minutes
+#
 
 def tracker_server(host, port):
     serversocket = socket.socket()
