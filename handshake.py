@@ -83,6 +83,7 @@ def client_handle_block(socket, message_type, payload):
     if node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20] == hashlib.sha1(block).digest():
         utils.insert_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
         # utils.map_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
+        node_info.bitfield_data[node_info.torrent_info['info_hash']][index_response] = 1
         return True
     else:
         return False

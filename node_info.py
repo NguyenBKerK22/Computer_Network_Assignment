@@ -11,3 +11,7 @@ files = []
 downloaded_pieces = [] # List of pieces that have been downloaded
 transfer_speed = {}
 node_folder = None
+
+bitfield_data = None # Bitfield data for the torrent
+
+    

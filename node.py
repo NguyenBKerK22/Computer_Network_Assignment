@@ -59,7 +59,7 @@ def client_handshake_bitfield(serverip, serverport):
        with peer_pieces_lock:
            for piece_index, has_piece in enumerate(recv_file_pieces):
                if has_piece == 1:
-                   if piece_index not in peer_pieces:
+                   if piece_index not in peer_pieces and (node_info.bitfield_data[node_info.torrent_info['info_hash']][piece_index] == 0):
                        peer_pieces[piece_index] = []
                    peer_pieces[piece_index].append((serverip, serverport, client_socket))
        break
@@ -112,8 +112,7 @@ def download_pieces_threaded(pieces, sock, ip, port, downloading):
         print("Peer has disconnected")
     else:
         print(f"Finished downloading from {ip}:{port}")
-     
-     
+    
     print(f"Undownloaded pieces: {len(undownloaded_pieces)}")
     with downloading_lock:
         for piece in undownloaded_pieces:
@@ -190,7 +189,7 @@ if __name__ == "__main__":
     # CLIENT: save torrent information
     node_info.torrent_info = torrent_info
     # CLIENT: init downloaded pieces
-    node_info.downloaded_pieces = [0] * math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
+    node_info.bitfield_data[node_info.torrent_info['info_hash']] = [0] * math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
     
     # SERVER: load all files to mem
     def load_all_torrents(directory):
@@ -239,8 +238,6 @@ if __name__ == "__main__":
     # Downloading
     downloading = []
     # sort data by the number of elements in each list
-    
-    
     
     sorted_data = sorted(peer_pieces.items(), key=lambda x: len(x[1]))
     selected_servers = select_servers(peer_pieces)
