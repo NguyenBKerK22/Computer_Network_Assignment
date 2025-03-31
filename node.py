@@ -132,6 +132,7 @@ def start_downloading(sorted_data, selected_servers, downloading):
                 
                 try:
                     ip, port, sock = value[server_index]
+                    print(f"Get data at index[{server_index}]: {ip}:{port}")
                 except IndexError:
                     print(f"No more servers available for this piece [{index}].")
                     continue
@@ -154,7 +155,7 @@ def start_downloading(sorted_data, selected_servers, downloading):
                 sorted_data = [piece_data for piece_data in sorted_data if piece_data[0] in future]
 
             server_index += 1
-        
+            print("Switching to next server...")
         if sorted_data:
             print("All online peer servers are disconnected or have no pieces. Please retry later !!!")
             return
