@@ -81,7 +81,21 @@ def client_handle_block(socket, message_type, payload):
     print("Index:", index_response)
     print("Length:", length)
     if node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20] == hashlib.sha1(block).digest():
-        utils.insert_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
+        
+        range_min = index_response // constant.NUM_OF_PIECES_IN_ONE_DAT * constant.NUM_OF_PIECES_IN_ONE_DAT
+        range_max = (index_response // constant.NUM_OF_PIECES_IN_ONE_DAT + 1) * constant.NUM_OF_PIECES_IN_ONE_DAT - 1
+        offset = index_response % constant.NUM_OF_PIECES_IN_ONE_DAT
+        file_name_dat = f"./{node_info.node_folder}/temp/piece{range_min}_{range_max}.dat"
+        
+        print("Range min:", range_min)
+        print("Range max:", range_max)
+        print("File name:", file_name_dat)
+        print("Offset:", offset)
+        
+        utils.insert_piece_to_file(filename= file_name_dat, piece_index = offset, piece_data = block)
+        
+        # utils.insert_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
+        
         # utils.map_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
         node_info.bitfield_data[node_info.torrent_info['info_hash']][index_response] = 1
         return True

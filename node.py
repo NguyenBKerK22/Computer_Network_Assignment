@@ -16,6 +16,7 @@ import handshake
 from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 import copy
+import glob
 # Create peer infomation
 peerip = utils.get_host_default_interface_ip()
 node_info.peerip = peerip
@@ -159,13 +160,34 @@ def start_downloading(sorted_data, selected_servers, downloading):
 
             # Reconstruct the code to avoid modifying sorted_data during iteration
             for future in futures:
-                sorted_data = [piece_data for piece_data in sorted_data if piece_data[0] not in future]
+                sorted_data = [piece_data for piece_data in sorted_data if piece_data[0] in future]
             server_index += 1
             print("Switching to next server...")
             print("sorted_data:", 9999, "server_index:", server_index, "len(selected_servers):", len(selected_servers))
         if sorted_data:
             print("All online peer servers are disconnected or have no pieces. Please retry later !!!")
             return
+        else:
+            dat_files = glob.glob(f"./{node_info.node_folder}/temp/*.dat")
+            
+            if not dat_files:
+                print("No .dat files found to merge.")
+            else:
+                # Merge contents into a single file
+                # check if file_name exists
+                if os.path.exists(f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}"):
+                    print(f"File {node_info.torrent_info['file_name']} already exists. Please delete it before merging.")
+                    return
+                # Create the directory if it doesn't exist
+                os.makedirs(f"./{node_info.node_folder}/downloaded", exist_ok=True)
+                # Merge all .dat files into one
+                with open(f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", "wb") as merged_file:
+                    for dat_file in sorted(dat_files):
+                        with open(dat_file, "rb") as f:
+                            merged_file.write(f.read())
+                        print(f"Appended {dat_file}")
+
+                print("All .dat files have been successfully merged into merged.dat")
 
 def load_all_torrents(directory):
     for file in os.listdir(directory):
@@ -217,7 +239,7 @@ if __name__ == "__main__":
         'http://10.0.197.5:22236',
         # 'http://192.168.31.77:22236',
         # 'http://10.0.120.133:22236',
-        # 'http://192.168.1.106:22236',
+        # 'http://192.168.1.105:22236',
         torrent_info['info_hash'],
         torrent_info['file_length'],
         torrent_info['piece_length'],
