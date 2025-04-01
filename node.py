@@ -192,7 +192,10 @@ def start_downloading(sorted_data, selected_servers, downloading):
                         print(f"Appended {dat_file}")
                     merged_file.close()
                 for dat_file in dat_files:
-                    os.remove(dat_file)
+                    try:
+                        os.remove(dat_file)
+                    except Exception as e:
+                        print(f"Failed to remove {dat_file}: {e}")
                 print("All .dat files have been successfully merged into merged.dat")
 
 def load_all_torrents(directory):
