@@ -1,6 +1,6 @@
 import pygame
 import sys
-
+import os
 GREEN = (34,187,51)
 
 # Initialize Pygame
@@ -48,8 +48,8 @@ files = [
 ]
 
 # Pause/Resume buttons for each file
-pause_buttons = [pygame.Rect(650-100, 115 + i * 50, 80, 30) for i in range(100)]
-
+pause_buttons = [pygame.Rect(650-100, 115 + i * 50, 30, 30) for i in range(100)]
+delete_buttons = [pygame.Rect(650-100+35, 115 + i * 50, 30, 30) for i in range(100)]
 
 # Function to simulate starting a download
 def start_download(link):
@@ -61,7 +61,7 @@ def start_download(link):
 clock = pygame.time.Clock()
 running = True
 def main():
-    global running, active, input_text, files, pause_buttons
+    global running, active, input_text, files, pause_buttons, delete_buttons
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -78,6 +78,7 @@ def main():
                 if browse_button.collidepoint(event.pos):
                     import tkinter as tk
                     from tkinter import filedialog
+
                     root = tk.Tk()
                     root.withdraw()  # hide the tkinter window
                     file_path = filedialog.askopenfilename()
@@ -94,6 +95,10 @@ def main():
                 for i, button in enumerate(pause_buttons):
                     if button.collidepoint(event.pos):
                         files[i]["paused"] = not files[i]["paused"]
+                        
+                for i, button in enumerate(delete_buttons):
+                    if button.collidepoint(event.pos):
+                        files.remove(files[i])
 
             # Handle text input
             if event.type == pygame.KEYDOWN:
@@ -153,29 +158,38 @@ def main():
             pygame.draw.rect(screen, BLACK, file_outline, 2)
 
             # File name
-            file_name = small_font.render(file["name"], True, BLACK)
-            screen.blit(file_name, (50, y_pos))
+            file_name = os.path.basename(file["name"])
 
+            while small_font.size(file_name)[0] > (file_outline.width - 200) and file_name:
+                file_name = file_name[:-1]
+            if file_name != os.path.basename(file["name"]):
+                file_name = file_name + "..."
+            filename_to_display = small_font.render(file_name, True, BLACK)
+            screen.blit(filename_to_display, (50, y_pos))
             # Progress
             if file["paused"]:
-                progress_text = f"Paused: {file['progress']}%"
+                progress_text = f"{file['progress']}%"
             else:
-                progress_text = f"Downloading: {file['progress']}%"
+                progress_text = f"{file['progress']}%"
                 if file["progress"] < 100:
                     file["progress"] += 1
                     print(file["progress"])
 
             progress = small_font.render(progress_text, True, BLACK)
-            screen.blit(progress, (350, y_pos))
+            screen.blit(progress, (500, y_pos + 3))
 
             # Pause/Resume button
             button = pause_buttons[i]
-            pygame.draw.rect(screen, (240,173,78), button, border_radius=8)
-            pygame.draw.rect(screen, BLACK, button, 2, border_radius=10)
-            button_text = "PAUSE" if not file["paused"] else "RESUME"
-            button_label = small_font.render(button_text, True, BLACK)
+            button_text = "▶️" if not file["paused"] else "⏸️"
+            button_label = emoji_font.render(button_text, True, BLACK)
             label_rect = button_label.get_rect(center=button.center)
             screen.blit(button_label, label_rect)
+            
+            # Delete button
+            delete_button = delete_buttons[i]
+            delete_button_label = emoji_font.render("⛔", True, BLACK)
+            delete_label_rect = delete_button_label.get_rect(center=delete_button.center)
+            screen.blit(delete_button_label, delete_label_rect)
 
         # Update the display
         pygame.display.flip()
