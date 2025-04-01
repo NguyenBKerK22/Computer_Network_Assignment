@@ -1,12 +1,7 @@
 import utils
 
-def renew_peer_id():
-    global PeerId
-    PeerId = utils.generate_20_byte_peer_id()
-    return PeerId
-data_file_path = "./3mb-examplefile-com.txt"
 torrent_info = None
-PeerId = renew_peer_id()
+PeerId = utils.renew_peer_id()
 files = []
 
 transfer_speed = {}
@@ -19,3 +14,11 @@ interval = 1 # Interval for tracker requests
 server_port = None # Port for the server to listen on
 
 peerip = None # IP address of the peer
+
+tracker_announce = "http://192.168.31.147:22236"
+
+# http://192.168.31.147:22236
+# http://10.230.77.196:22236
+# http://192.168.31.77:22236
+# http://10.0.120.133:22236
+# http://192.168.1.105:22236

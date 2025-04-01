@@ -6,7 +6,7 @@ import utils
 import  time
 # In-memory data structures
 peers = []  # {peer_id: {"ip": str, "port": int, "files": [file_hashes]}}
-tracker_id = "hehehehehehehehehehe"  # Unique tracker ID
+# tracker_id = "hehehehehehehehehehe"  # Unique tracker ID
 torrents = {}
 
 
@@ -42,10 +42,6 @@ def new_connection(addr, conn):
                 conn.sendall("HTTP/1.1 102 MISSING INFO HASH\r\n".encode())
             elif query_params['peer_id'] == '':
                 conn.sendall("HTTP/1.1 103 MISSING PEER ID\r\n".encode())
-            # elif len(query_params['info_hash'][0]) != 40:
-            #     conn.sendall("HTTP/1.1 150 INVALID INFO HASH\r\n".encode())
-            # elif len(query_params['peer_id'][0]) != 20:
-            #     conn.sendall("HTTP/1.1 151 INVALID PEER ID\r\n".encode())
             else:
                 existing_peer = next((p for p in peers if p["peer_id"] == peer_id), None)
                 current_time = time.time()

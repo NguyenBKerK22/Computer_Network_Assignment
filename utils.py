@@ -17,6 +17,11 @@ def get_host_default_interface_ip():
 def generate_20_byte_peer_id():
     return str(str(uuid.uuid4())[:20])
 
+def renew_peer_id():
+    global PeerId
+    PeerId = generate_20_byte_peer_id()
+    return PeerId
+
 def insert_piece_to_file(filename, piece_data, piece_index):
     try:
         with open(filename, 'r+b') as f:
@@ -30,18 +35,9 @@ def insert_piece_to_file(filename, piece_data, piece_index):
             f.close()
         print(f"An error occurred: {e}")
 
-
 def create_file(file_name, file_size):
     with open(file_name, "wb") as f:
         f.truncate(file_size)  # Tạo file rỗng với kích thước cố định
-
-def map_piece_to_file(filename, piece_data, piece_index):
-    with open(filename, "r+b") as f:
-        mmapped_file = mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_WRITE)
-        start_byte = piece_index * constant.PIECE_SIZE
-        mmapped_file[start_byte:start_byte + constant.PIECE_SIZE] = piece_data
-        mmapped_file.flush()
-        mmapped_file.close()
 
 def recv_exactly(sock, size):
     """ Nhận chính xác `size` byte từ socket """
@@ -70,11 +66,9 @@ def receive_message(sock):
     time_elapsed = end_time - start_time
     if time_elapsed > 0:
         download_speed = len(payload) / time_elapsed
-        
         print(f"Download speed: {download_speed} bytes/second")
     else:
-        
         print("Download speed: 0 bytes/second")
 
-    return message_length, message_type[0], payload  # Trả về kiểu số nguyên + dữ liệu payload
+    return message_length, message_type[0], payload
 

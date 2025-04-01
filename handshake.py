@@ -92,6 +92,10 @@ def client_handle_block(socket, message_type, payload):
         # print("File name:", file_name_dat)
         # print("Offset:", offset)
         
+        # check if the folder is already created
+        if not os.path.exists(f"./{node_info.node_folder}/temp"):
+            os.makedirs(f"./{node_info.node_folder}/temp")
+        
         utils.insert_piece_to_file(filename= file_name_dat, piece_index = offset, piece_data = block)
         
         # utils.insert_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
