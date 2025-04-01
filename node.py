@@ -88,8 +88,8 @@ def download_pieces(pieces, server_socket):
                 try:
                     server_socket.sendall(request_msg)
                     message_length, message_type, payload = utils.receive_message(server_socket)
-                    print("Message length request:", message_length)
-                    print("Message type request:", message_type)
+                    # print("Message length request:", message_length)
+                    # print("Message type request:", message_type)
                     if handshake.client_handle_block(server_socket, message_type, payload):
                         undownloaded_pieces.remove(piece)
                         break  # Thành công, thoát vòng lặp thử lại
@@ -129,7 +129,6 @@ def download_pieces_threaded(pieces, sock, ip, port, downloading):
     return undownloaded_pieces
 
 def start_downloading(sorted_data, selected_servers, downloading):
-    """Hàm chính để tạo thread và quản lý tải dữ liệu."""
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
         
@@ -141,7 +140,7 @@ def start_downloading(sorted_data, selected_servers, downloading):
                 
                 try:
                     ip, port, sock = value[server_index]
-                    print(f"Get data at index[{server_index}]: {ip}:{port}")
+                    # print(f"Get data at index[{server_index}]: {ip}:{port}")
                 except IndexError:
                     print(f"No more servers available for this piece [{index}].")
                     continue
@@ -149,15 +148,18 @@ def start_downloading(sorted_data, selected_servers, downloading):
                 for server_info, pieces in selected_servers:
                     if ip == server_info[0] and port == server_info[1]:
                         with downloading_lock:
-                            pieces = [piece for piece in pieces if piece not in downloading]
+                            pieces = [piece for piece in pieces if piece not in downloading][:5] #NUM_OF_PIECE_TO_SELECT
+                            print(f"Get data at index[{server_index}]: {ip}:{port} for pieces: {pieces}")
                         if not pieces:
                             break
                         future = executor.submit(download_pieces_threaded, pieces, sock, ip, port, downloading)
                         futures.append(future.result())
                         break
-                if future:
-                    break
-
+                if len(value) != 0:
+                    server_index = (server_index + 1) % len(value)
+                # if future:
+                #     break
+                
             # Reconstruct the code to avoid modifying sorted_data during iteration
             for future in futures:
                 sorted_data = [piece_data for piece_data in sorted_data if piece_data[0] in future]
@@ -186,7 +188,9 @@ def start_downloading(sorted_data, selected_servers, downloading):
                         with open(dat_file, "rb") as f:
                             merged_file.write(f.read())
                         print(f"Appended {dat_file}")
-
+                    merged_file.close()
+                for dat_file in dat_files:
+                    os.remove(dat_file)
                 print("All .dat files have been successfully merged into merged.dat")
 
 def load_all_torrents(directory):
@@ -236,7 +240,7 @@ if __name__ == "__main__":
 
     data_response = client.send_request_to_tracker(
         # 'http://192.168.31.147:22236',
-        'http://10.0.197.5:22236',
+        'http://10.230.77.196:22236',
         # 'http://192.168.31.77:22236',
         # 'http://10.0.120.133:22236',
         # 'http://192.168.1.105:22236',
@@ -270,13 +274,11 @@ if __name__ == "__main__":
             for hand in handshakes:
                 hand.result()
 
-    # Downloading
-    downloading = []
-    # sort data by the number of elements in each list
-    sorted_data = sorted(peer_pieces.items(), key=lambda x: len(x[1]))
-    selected_servers = select_servers(peer_pieces)
-    start_downloading(sorted_data, selected_servers, downloading)
-
+        downloading = []
+        sorted_data = sorted(peer_pieces.items(), key=lambda x: len(x[1]))
+        selected_servers = select_servers(peer_pieces)
+        start_downloading(sorted_data, selected_servers, downloading)
+    
     # For server running
     talert.join()
     tserver.join()

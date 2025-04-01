@@ -78,8 +78,8 @@ def client_handle_block(socket, message_type, payload):
     index_response = int.from_bytes(payload[:4], 'big')
     length = int.from_bytes(payload[4:8], 'big')
     block = payload[8:]
-    print("Index:", index_response)
-    print("Length:", length)
+    # print("Index:", index_response)
+    # print("Length:", length)
     if node_info.torrent_info['pieces'][index_response * 20 : index_response * 20 + 20] == hashlib.sha1(block).digest():
         
         range_min = index_response // constant.NUM_OF_PIECES_IN_ONE_DAT * constant.NUM_OF_PIECES_IN_ONE_DAT
@@ -87,10 +87,10 @@ def client_handle_block(socket, message_type, payload):
         offset = index_response % constant.NUM_OF_PIECES_IN_ONE_DAT
         file_name_dat = f"./{node_info.node_folder}/temp/piece{range_min}_{range_max}.dat"
         
-        print("Range min:", range_min)
-        print("Range max:", range_max)
-        print("File name:", file_name_dat)
-        print("Offset:", offset)
+        # print("Range min:", range_min)
+        # print("Range max:", range_max)
+        # print("File name:", file_name_dat)
+        # print("Offset:", offset)
         
         utils.insert_piece_to_file(filename= file_name_dat, piece_index = offset, piece_data = block)
         
