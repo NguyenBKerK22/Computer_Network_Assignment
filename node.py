@@ -51,7 +51,6 @@ def client_handshake_bitfield(serverip, serverport):
         print(f"[EXCEPT] Connection error: {e}")
         client_socket.close()
         return
-    
     client_socket.sendall(handshake.create_handshake_message(node_info.torrent_info['info_hash']))
     handshake_back = client_socket.recv(constant.NUM_BYTE_HANDSHAKE)
     if(handshake_back == b''):
@@ -235,8 +234,8 @@ if __name__ == "__main__":
     tserver.start()
 
     data_response = client.send_request_to_tracker(
-        # 'http://192.168.31.147:22236',
-        'http://10.0.197.5:22236',
+         'http://192.168.31.147:22236',
+        #'http://10.230.69.168:22236',
         # 'http://192.168.31.77:22236',
         # 'http://10.0.120.133:22236',
         # 'http://192.168.1.105:22236',

@@ -58,7 +58,7 @@ def send_alert_to_tracker(interval):
             downloaded = sum(node_info.bitfield_data[node_info.torrent_info['info_hash']])
             left = len(node_info.bitfield_data[node_info.torrent_info['info_hash']]) - downloaded
             event = "completed" if left == 0 else "downloading"
-            response = send_request_to_tracker("http://10.0.197.5:22236",
+            response = send_request_to_tracker("http://192.168.31.147:22236",
                                                node_info.torrent_info['info_hash'],
                                                node_info.torrent_info['file_length'],
                                                node_info.torrent_info['piece_length'],

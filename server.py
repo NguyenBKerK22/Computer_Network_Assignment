@@ -9,6 +9,7 @@ import hashlib
 import handshake
 import math
 import node
+import os
 
 #########################################
 # Thread Server
@@ -67,7 +68,7 @@ def new_message_incoming(addr, conn):
         print(f"Incorrect info_hash from {addr}")
         conn.close()
         return
-
+    file = open(os.path.join(f"./{node_info.node_folder}/files/", torrent_info["file_name"]), 'rb')
     # Send handshake back
     response_handshake = b''
     response_handshake += bytes([19])
@@ -120,8 +121,11 @@ def new_message_incoming(addr, conn):
             else:
                 payload = b''
 
-            handshake.server_handle_message(message_type, payload, conn, addr, torrent_info)
+            handshake.server_handle_message(message_type, payload, conn, addr, torrent_info, file)
         except socket.error as e:
+            print(f"Connection closed by client {addr}")
+            print(f"Closed file")
+            file.close()
             break
 
 
