@@ -34,6 +34,7 @@ def insert_piece_to_file(filename, piece_data, piece_index):
             f.seek(piece_index * constant.PIECE_SIZE)
             f.write(piece_data)
             f.close()
+        print(f"An error occurred: {e}")
 
 def create_file(file_name, file_size):
     with open(file_name, "wb") as f:
@@ -59,7 +60,16 @@ def receive_message(sock):
     message_type = recv_exactly(sock, 1)
 
     # Nhận payload (nếu có)
+    start_time = time.time()
     payload = recv_exactly(sock, message_length - 1) if message_length > 1 else b''
+    end_time = time.time()
+
+    time_elapsed = end_time - start_time
+    if time_elapsed > 0:
+        download_speed = len(payload) / time_elapsed
+        print(f"Download speed: {download_speed} bytes/second")
+    else:
+        print("Download speed: 0 bytes/second")
 
     return message_length, message_type[0], payload
 
