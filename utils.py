@@ -24,17 +24,16 @@ def renew_peer_id():
     return PeerId
 
 def insert_piece_to_file(filename, piece_data, piece_index):
-    global f
-    if f is None:
-        try:
-            f = open(filename, 'r+b')
-        except FileNotFoundError:
-            f = open(filename, 'w+b')
     try:
-        f.seek(piece_index * constant.PIECE_SIZE)
-        f.write(piece_data)
+        with open(filename, 'r+b') as f:
+            f.seek(piece_index * constant.PIECE_SIZE)
+            f.write(piece_data)
+            f.close()
     except Exception as e:
-        print(f"An error occurred: {e}")
+        with open(filename, 'w+b') as f:
+            f.seek(piece_index * constant.PIECE_SIZE)
+            f.write(piece_data)
+            f.close()
 
 def create_file(file_name, file_size):
     with open(file_name, "wb") as f:
