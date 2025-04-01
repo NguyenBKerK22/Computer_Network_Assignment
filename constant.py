@@ -10,3 +10,5 @@ TIMEOUT_REQUEST = 1  # seconds
 MAX_RETRIES = 3  # Số lần thử lại nếu mất kết nối
 
 NUM_OF_PIECES_IN_ONE_DAT = 20
+
+NUM_OF_PIECE_TO_SELECT = 5
