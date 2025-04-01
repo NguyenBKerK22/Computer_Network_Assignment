@@ -29,9 +29,10 @@ import node
 # Create peer infomation
 peerip = utils.get_host_default_interface_ip()
 node_info.peerip = peerip
-peerid = node_info.PeerId
+peerid = utils.renew_peer_id()
+node_info.PeerId = peerid
 
-GREEN = (34,187,51)
+
 
 # Initialize Pygame
 pygame.init()
@@ -51,7 +52,7 @@ pygame.display.set_caption("My Torrent App")
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
-GREEN = (0, 128, 0)
+GREEN = (34,187,51)
 YELLOW = (255, 255, 0)
 
 # Fonts
@@ -80,10 +81,9 @@ delete_buttons = [pygame.Rect(650-100+35, 115 + i * 50, 30, 30) for i in range(1
 
 # Function to simulate starting a download
 def start_download(link, file_obj):
-    tkk = threading.Thread(target=node.chay_thoi, args=(link, 2, file_obj))
+    tkk = threading.Thread(target=node.chay_thoi, args=(link, 1, file_obj))
     tkk.start()
     
-
 # Main loop
 clock = pygame.time.Clock()
 running = True
@@ -198,12 +198,12 @@ def main_ui():
             #     progress_text = f"{file['progress']}%"
             # else:
             # if file['hash'] == 
-            # progress_text = f"{file['progress']}%"
+            progress_text = f"{int(node_info.get_status(file['hash'])["progress"])}%"
             #     if file["progress"] < 100:
             #         file["progress"] += 1
             #         print(file["progress"])
 
-            progress = small_font.render("progress_text", True, BLACK)
+            progress = small_font.render(progress_text, True, BLACK)
             screen.blit(progress, (500, y_pos + 3))
 
             # Pause/Resume button

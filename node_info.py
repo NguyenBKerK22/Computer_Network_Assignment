@@ -2,7 +2,7 @@ import utils
 import threading
 
 torrent_info = None
-PeerId = utils.renew_peer_id()
+PeerId = None
 files = []
 
 transfer_speed = {}
@@ -22,17 +22,26 @@ tracker_announce = "http://192.168.1.105:22236"
 
 lockkkk = threading.Lock()
 node_status = {
-    # {   'hash': None,
-    #     "progress": 0,
-    #     "downloaded": 0,
-    #     "total": 0,
-    # }
+    'hash-abc-defgh': {
+        "progress": 0,
+        "downloaded": 0,
+        "total": 0,
+    }
     # add other properties as needed
 }
 
-def update_status(key, value):
+def append_status(key, value):
     with lockkkk:
-        node_status[key] = value
+        if key not in node_status:
+            node_status[key] = {
+                "progress": 0,
+                "downloaded": 0,
+                "total": 0,
+            }
+
+def update_status(key, key2, value):
+    with lockkkk:
+        node_status[key][key2] = value
 
 def get_status(key):
     with lockkkk:

@@ -20,10 +20,7 @@ import glob
 import random
 import nodeUI
 
-# Create peer infomation
-peerip = utils.get_host_default_interface_ip()
-node_info.peerip = peerip
-peerid = node_info.PeerId
+
 
 # Dictionary to store available pieces from peers
 # count = 0
@@ -94,6 +91,10 @@ def download_pieces(pieces, server_socket):
                     # print("Message type request:", message_type)
                     if handshake.client_handle_block(server_socket, message_type, payload):
                         undownloaded_pieces.remove(piece)
+                        node_info.update_status(node_info.torrent_info['info_hash'], 
+                                                "progress", 
+                                                sum(node_info.bitfield_data[node_info.torrent_info['info_hash']]) / len(node_info.bitfield_data[node_info.torrent_info['info_hash']]) * 100
+                                                )
                         break  # Thành công, thoát vòng lặp thử lại
                     else:
                         attempt += 1
@@ -222,6 +223,7 @@ def chay_thoi(filepath, nodeid, file_obj):
 
     # UI
     file_obj.append({"name": filepath, "progress": 0, "paused": False, "hash": torrent_info['info_hash']})
+    node_info.append_status(torrent_info['info_hash'], {"progress": 0, "downloaded": 0, "total": 0})
 
     load_all_files = load_all_torrents(f"./{node_info.node_folder}/torrents/")
 
@@ -234,14 +236,14 @@ def chay_thoi(filepath, nodeid, file_obj):
         torrent_info['file_length'],
         torrent_info['piece_length'],
         int(node_info.server_port),
-        peerid,
-        peerip,
+        node_info.PeerId,
+        node_info.peerip,
         "started",
         0,
         0,
         math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
     )
-
+    # INTERVAL
     node_info.interval = data_response[b'interval']
     talert = threading.Thread(target=client.send_alert_to_tracker, args=(node_info.interval,))
     talert.start()
