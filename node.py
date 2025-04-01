@@ -134,6 +134,9 @@ def start_downloading(sorted_data, selected_servers, downloading):
         
         server_index = 0
         while sorted_data and server_index < len(selected_servers):
+            for i in range(len(sorted_data)):
+                index = sorted_data[i][0]
+                value = sorted_data[i][1]
             for index, value in sorted_data:
                 if not value:
                     continue
@@ -158,8 +161,9 @@ def start_downloading(sorted_data, selected_servers, downloading):
                 if len(value) != 0:
                     server_index = (server_index + 1) % len(value)
                     print("Switching to next server...")
-                # if future:
-                #     break
+                downloaded = sum(node_info.bitfield_data[node_info.torrent_info['info_hash']])
+                if downloaded >= len(sorted_data):
+                    break
                 
             # Reconstruct the code to avoid modifying sorted_data during iteration
             for future in futures:
