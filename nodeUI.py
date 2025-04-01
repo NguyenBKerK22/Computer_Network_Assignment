@@ -80,7 +80,7 @@ delete_buttons = [pygame.Rect(650-100+35, 115 + i * 50, 30, 30) for i in range(1
 
 # Function to simulate starting a download
 def start_download(link, file_obj):
-    tkk = threading.Thread(target=node.chay_thoi, args=(link, 2, file_obj))
+    tkk = threading.Thread(target=node.chay_thoi, args=(link, 1, file_obj))
     tkk.start()
     
 

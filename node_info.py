@@ -16,7 +16,7 @@ server_port = None # Port for the server to listen on
 
 peerip = None # IP address of the peer
 
-tracker_announce = "http://192.168.1.105:22236"
+tracker_announce = "http://10.0.223.239:22236"
 
 
 

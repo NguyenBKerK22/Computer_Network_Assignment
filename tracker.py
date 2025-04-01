@@ -36,6 +36,7 @@ def new_connection(addr, conn):
             left = int(query_params["left"][0])
             compact_mode = int(query_params.get("compact", [0])[0])
             event = query_params.get("event")
+            print(query_params)
             # Check and send response to peer
             if query_params['info_hash'] == '':
                 conn.sendall("HTTP/1.1 102 MISSING INFO HASH\r\n".encode())
@@ -44,8 +45,11 @@ def new_connection(addr, conn):
             else:
                 existing_peer = next((p for p in peers if p["peer_id"] == peer_id), None)
                 current_time = time.time()
-                if existing_peer and existing_peer["event"] != "completed":
+                if existing_peer and existing_peer["event"][0] != "completed" and event[0] != "started" :
                     # Cập nhật thời gian last_seen
+                    print(existing_peer)
+                    print(event)
+                    print(existing_peer["event"])
                     if event == "stopped":
                         peers.remove(existing_peer)
                         return
