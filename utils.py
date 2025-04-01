@@ -4,6 +4,7 @@ import constant
 import struct
 import mmap
 import time
+f = None
 def get_host_default_interface_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -23,16 +24,16 @@ def renew_peer_id():
     return PeerId
 
 def insert_piece_to_file(filename, piece_data, piece_index):
+    global f
+    if f is None:
+        try:
+            f = open(filename, 'r+b')
+        except FileNotFoundError:
+            f = open(filename, 'w+b')
     try:
-        with open(filename, 'r+b') as f:
-            f.seek(piece_index * constant.PIECE_SIZE)
-            f.write(piece_data)
-            f.close()
+        f.seek(piece_index * constant.PIECE_SIZE)
+        f.write(piece_data)
     except Exception as e:
-        with open(filename, 'w+b') as f:
-            f.seek(piece_index * constant.PIECE_SIZE)
-            f.write(piece_data)
-            f.close()
         print(f"An error occurred: {e}")
 
 def create_file(file_name, file_size):

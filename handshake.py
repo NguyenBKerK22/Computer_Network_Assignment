@@ -8,7 +8,7 @@ import mmap
 import time
 diff_indexes = []
 index = 0
-
+f = None
 def create_handshake_message(info_hash):
     handshake = b''
     handshake += bytes([19])
@@ -105,23 +105,20 @@ def client_handle_block(socket, message_type, payload):
         return True
     else:
         return False
-def server_handle_message(message_type, payload, conn, addr, torrent_info):
+def server_handle_message(message_type, payload, conn, addr, torrent_info, file):
     if message_type[0] == 4:  # Have (client -> server)
         piece_index = int.from_bytes(payload, 'big')
         print(f"[HAVE]")
     elif message_type[0] == 6:  # Request (client -> server)
+        global f
         index_response = int.from_bytes(payload[:4], 'big')
         begin = int.from_bytes(payload[4:8], 'big')
         length = int.from_bytes(payload[8:], 'big')
+        file.seek(index_response * length + begin)
+        block = file.read(length)
 
-        with open(os.path.join(f"./{node_info.node_folder}/files/", torrent_info["file_name"]), 'rb') as f:
-            print("POSITION: ", index_response * constant.PIECE_SIZE + begin)
-            print("SEEK POSITION: ", constant.PIECE_SIZE)
-            f.seek(index_response * length + begin)
-            block = f.read(length)
         block_message = construct_block_message(index_response, len(block), block)
         conn.sendall(block_message)
-        f.close()
     elif message_type[0] == 8:  # Cancel (client -> server)
         index = int.from_bytes(payload[:4], 'big')
         begin = int.from_bytes(payload[4:8], 'big')
