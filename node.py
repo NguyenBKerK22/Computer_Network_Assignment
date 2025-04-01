@@ -17,6 +17,9 @@ from concurrent.futures import ThreadPoolExecutor
 from collections import defaultdict
 import copy
 import glob
+import random
+import nodeUI
+
 # Create peer infomation
 peerip = utils.get_host_default_interface_ip()
 node_info.peerip = peerip
@@ -205,52 +208,32 @@ def load_all_torrents(directory):
         torrent_info = parsers.parse_torrent(os.path.join(directory, file))
         node_info.files.append(torrent_info)
 
-if __name__ == "__main__":
-    args_parser = argparse.ArgumentParser(
-        prog='node',
-        description='Node connect to predeclared server',
-        epilog='<-- !! It requires the server is running and listening !!!'
-    )
-    args_parser.add_argument('--node-id', required=True)
-    args_parser.add_argument('--server-port', required=True)
-    args_parser.add_argument('--file-path', required=True)
-    args = args_parser.parse_args()
-
-    # NODE: Parse node id
+def chay_thoi(filepath, nodeid, file_obj):
+    print("CALL chay_thoi")
     arr = ["node1", "node2", "node3", "node4", "node5", "seed"]
-    if int(args.node_id) != -1:
-        node_info.node_folder = arr[int(args.node_id) - 1]
-        # CLIENT: Parse torrent file
-        node_info.file_path = args.file_path
-        torrent_info = parsers.parse_torrent(f"./{node_info.node_folder}/torrents/{node_info.file_path}")
-        # CLIENT: save torrent information
-        node_info.torrent_info = torrent_info
-        # CLIENT: init downloaded pieces
-        node_info.bitfield_data[node_info.torrent_info['info_hash']] = [0] * math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
+    node_info.node_folder = arr[int(nodeid) - 1]
+    # CLIENT: Parse torrent file
+    node_info.file_path = filepath
+    torrent_info = parsers.parse_torrent(f"./{node_info.node_folder}/torrents/{node_info.file_path}")
+    # CLIENT: save torrent information
+    node_info.torrent_info = torrent_info
+    # CLIENT: init downloaded pieces
+    node_info.bitfield_data[node_info.torrent_info['info_hash']] = [0] * math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
 
-        load_all_files = load_all_torrents(f"./{node_info.node_folder}/torrents/")
+    # UI
+    file_obj.append({"name": filepath, "progress": 0, "paused": False, "hash": torrent_info['info_hash']})
 
-        constant.PIECE_SIZE = node_info.torrent_info['piece_length']
-        print(f"Piece size: {constant.PIECE_SIZE}")
-    else:
-        node_info.node_folder = arr[5]
-        for file in os.listdir(f"./seed/torrents"):
-            torrent_info = parsers.parse_torrent(f"./seed/torrents/{file}")
-            node_info.bitfield_data[torrent_info['info_hash']] = [1] * math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
-        load_all_files = load_all_torrents(f"./seed/torrents")
+    load_all_files = load_all_torrents(f"./{node_info.node_folder}/torrents/")
 
-    # SERVER
-    node_info.server_port = args.server_port
-    serverport = int(args.server_port)
-    tserver = threading.Thread(target=server.thread_server, args=(peerip, serverport))
-    tserver.start()
-
+    constant.PIECE_SIZE = node_info.torrent_info['piece_length']
+    print(f"Piece size: {constant.PIECE_SIZE}")
+    
     data_response = client.send_request_to_tracker(
         node_info.tracker_announce,
         torrent_info['info_hash'],
         torrent_info['file_length'],
         torrent_info['piece_length'],
-        int(args.server_port),
+        int(node_info.server_port),
         peerid,
         peerip,
         "started",
@@ -259,13 +242,11 @@ if __name__ == "__main__":
         math.ceil(torrent_info['file_length'] / torrent_info['piece_length'])
     )
 
-    # INTERVAL
     node_info.interval = data_response[b'interval']
     talert = threading.Thread(target=client.send_alert_to_tracker, args=(node_info.interval,))
     talert.start()
-    
     # Get list of pieces
-    MAX_THREADS = 10
+    MAX_THREADS = 5
     peers = parsers.parse_response(data_response)
 
     if peers:
@@ -286,7 +267,35 @@ if __name__ == "__main__":
         for dat_file in dat_files:
             os.remove(dat_file)
         start_downloading(sorted_data, selected_servers, downloading)
+
+# if __name__ == "__main__":
+#     # args_parser = argparse.ArgumentParser(
+#     #     prog='node',
+#     #     description='Node connect to predeclared server',
+#     #     epilog='<-- !! It requires the server is running and listening !!!'
+#     # )
+#     # args_parser.add_argument('--node-id', required=True)
+#     # args_parser.add_argument('--server-port', required=True)
+#     # args_parser.add_argument('--file-path', required=True)
+#     # args = args_parser.parse_args()
+
+#     # NODE: Parse node id
     
-    # For server running
-    talert.join()
-    tserver.join()
+#     sv_port = random.randint(10000, 65535)
+
+#     # SERVER
+#     node_info.server_port = sv_port
+#     serverport = int(sv_port)
+#     tserver = threading.Thread(target=server.thread_server, args=(peerip, serverport))
+#     tserver.start()
+
+#     # INTERVAL
+#     # node_info.interval = data_response[b'interval']
+#     # talert = threading.Thread(target=client.send_alert_to_tracker, args=(node_info.interval,))
+#     # talert.start()
+    
+    
+#     # For server running
+#     # talert.join()
+
+#     tserver.join()

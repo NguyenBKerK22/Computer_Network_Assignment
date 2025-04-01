@@ -1,6 +1,36 @@
 import pygame
 import sys
 import os
+import threading
+import node_info
+
+import socket
+import time
+import argparse
+import threading
+import math
+import uuid
+import parsers
+import utils
+import client
+import server
+import node_info
+import constant
+import hashlib
+import os
+import handshake
+from concurrent.futures import ThreadPoolExecutor
+from collections import defaultdict
+import copy
+import glob
+import random
+import node
+
+# Create peer infomation
+peerip = utils.get_host_default_interface_ip()
+node_info.peerip = peerip
+peerid = node_info.PeerId
+
 GREEN = (34,187,51)
 
 # Initialize Pygame
@@ -41,10 +71,7 @@ start_button = pygame.Rect(540, 50, 110, 40)
 
 # File data (simulated)
 files = [
-    # {"name": "File name 1", "progress": 40, "paused": False},
-    # {"name": "File name 2", "progress": 90, "paused": False},
-    # {"name": "File name 3", "progress": 30, "paused": True},
-    # {"name": "File name 4", "progress": 60, "paused": False},
+    # {"name": "File name 1", "progress": 40, "paused": False}
 ]
 
 # Pause/Resume buttons for each file
@@ -52,15 +79,15 @@ pause_buttons = [pygame.Rect(650-100, 115 + i * 50, 30, 30) for i in range(100)]
 delete_buttons = [pygame.Rect(650-100+35, 115 + i * 50, 30, 30) for i in range(100)]
 
 # Function to simulate starting a download
-def start_download(link):
-    print(f"Starting download with link: {link}")
-    # In a real app, this would handle the torrent link and start the download
-    # For now, we just print the link and simulate progress
+def start_download(link, file_obj):
+    tkk = threading.Thread(target=node.chay_thoi, args=(link, 2, file_obj))
+    tkk.start()
+    
 
 # Main loop
 clock = pygame.time.Clock()
 running = True
-def main():
+def main_ui():
     global running, active, input_text, files, pause_buttons, delete_buttons
     while running:
         for event in pygame.event.get():
@@ -88,8 +115,8 @@ def main():
 
                 # Start button click
                 if start_button.collidepoint(event.pos) and input_text:
-                    start_download(input_text)
-                    files.append({"name": input_text, "progress": 0, "paused": False})
+                    start_download(os.path.basename(input_text), file_obj = files)
+                    
 
                 # Pause/Resume button clicks
                 for i, button in enumerate(pause_buttons):
@@ -167,15 +194,16 @@ def main():
             filename_to_display = small_font.render(file_name, True, BLACK)
             screen.blit(filename_to_display, (50, y_pos))
             # Progress
-            if file["paused"]:
-                progress_text = f"{file['progress']}%"
-            else:
-                progress_text = f"{file['progress']}%"
-                if file["progress"] < 100:
-                    file["progress"] += 1
-                    print(file["progress"])
+            # if file["paused"]:
+            #     progress_text = f"{file['progress']}%"
+            # else:
+            # if file['hash'] == 
+            # progress_text = f"{file['progress']}%"
+            #     if file["progress"] < 100:
+            #         file["progress"] += 1
+            #         print(file["progress"])
 
-            progress = small_font.render(progress_text, True, BLACK)
+            progress = small_font.render("progress_text", True, BLACK)
             screen.blit(progress, (500, y_pos + 3))
 
             # Pause/Resume button
@@ -196,9 +224,29 @@ def main():
         clock.tick(60)
 
 if __name__ == "__main__":
+    
+    sv_port = random.randint(10000, 65535)
+
+    # SERVER
+    node_info.server_port = sv_port
+    serverport = int(sv_port)
+    tserver = threading.Thread(target=server.thread_server, args=(peerip, serverport))
+    tserver.start()
+
+    # INTERVAL
+    # node_info.interval = data_response[b'interval']
+    # talert = threading.Thread(target=client.send_alert_to_tracker, args=(node_info.interval,))
+    # talert.start()
+    
+    # For server running
+    # talert.join()
+
+    
     # Run the main loop
-    main()
+    main_ui()
 
     # Quit Pygame
     pygame.quit()
     sys.exit()
+    
+    tserver.join()

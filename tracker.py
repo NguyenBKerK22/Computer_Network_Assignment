@@ -4,11 +4,10 @@ from urllib.parse import urlparse, parse_qs
 import bencodepy
 import utils
 import  time
-# In-memory data structures
-peers = []  # {peer_id: {"ip": str, "port": int, "files": [file_hashes]}}
-# tracker_id = "hehehehehehehehehehe"  # Unique tracker ID
-torrents = {}
 
+peers = []
+
+torrents = {}
 
 def new_connection(addr, conn):
     while True:
@@ -45,7 +44,7 @@ def new_connection(addr, conn):
             else:
                 existing_peer = next((p for p in peers if p["peer_id"] == peer_id), None)
                 current_time = time.time()
-                if existing_peer:
+                if existing_peer and existing_peer["event"] != "completed":
                     # Cập nhật thời gian last_seen
                     if event == "stopped":
                         peers.remove(existing_peer)
@@ -68,6 +67,7 @@ def new_connection(addr, conn):
                         compact_peers = b"".join(
                             socket.inet_aton(peer["ip"]) + peer["port"].to_bytes(2, "big")
                             for peer in peers
+                            if existing_peer and peer != existing_peer
                         )
                         response_data[b"peers"] = compact_peers
                     else:
@@ -122,8 +122,6 @@ def tracker_server(host, port):
         nconn = Thread(target=new_connection, args=(addr, conn))
         nconn.start()
         # nconn.join()
-
-
 
 if __name__ == "__main__":
     # hostname = socket.gethostname()
