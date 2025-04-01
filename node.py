@@ -79,7 +79,6 @@ def download_pieces(pieces, server_socket):
 
     for piece in pieces:
         if piece is not None:
-            print(piece)
             attempt = 0
             while attempt < constant.MAX_RETRIES:
                 request_msg = handshake.construct_request_message(piece, begin, block_length)
@@ -165,7 +164,6 @@ def start_downloading(sorted_data, selected_servers, downloading):
 
                 if len(value) != 0:
                     server_index = (server_index + 1) % len(value)
-                    print("Switching to next server...")
                 downloaded = sum(node_info.bitfield_data[node_info.torrent_info['info_hash']])
                 if downloaded >= len(sorted_data):
                     break
@@ -174,10 +172,7 @@ def start_downloading(sorted_data, selected_servers, downloading):
             for future in futures:
                 sorted_data = [piece_data for piece_data in sorted_data if piece_data[0] in future]
             # server_index += 1
-
-            print("sorted_data:", 9999, "server_index:", server_index, "len(selected_servers):", len(selected_servers))
         if sorted_data:
-            print("All online peer servers are disconnected or have no pieces. Please retry later !!!")
             return
         else:
             dat_files = glob.glob(f"./{node_info.node_folder}/temp/*.dat")
@@ -201,7 +196,10 @@ def start_downloading(sorted_data, selected_servers, downloading):
                         print(f"Appended {dat_file}")
                     merged_file.close()
                 for dat_file in dat_files:
-                    os.remove(dat_file)
+                    try:
+                        os.remove(dat_file)
+                    except Exception as e:
+                        print(f"Failed to remove {dat_file}: {e}")
                 print("All .dat files have been successfully merged into merged.dat")
 
 def load_all_torrents(directory):
