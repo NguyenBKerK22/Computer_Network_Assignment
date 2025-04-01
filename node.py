@@ -87,8 +87,8 @@ def download_pieces(pieces, server_socket):
                 try:
                     server_socket.sendall(request_msg)
                     message_length, message_type, payload = utils.receive_message(server_socket)
-                    print("Message length request:", message_length)
-                    print("Message type request:", message_type)
+                    # print("Message length request:", message_length)
+                    # print("Message type request:", message_type)
                     if handshake.client_handle_block(server_socket, message_type, payload):
                         undownloaded_pieces.remove(piece)
                         break  # Thành công, thoát vòng lặp thử lại
@@ -128,7 +128,6 @@ def download_pieces_threaded(pieces, sock, ip, port, downloading):
     return undownloaded_pieces
 
 def start_downloading(sorted_data, selected_servers, downloading):
-    """Hàm chính để tạo thread và quản lý tải dữ liệu."""
     with ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
         
@@ -157,11 +156,17 @@ def start_downloading(sorted_data, selected_servers, downloading):
                 if future:
                     break
 
+                if len(value) != 0:
+                    server_index = (server_index + 1) % len(value)
+                    print("Switching to next server...")
+                # if future:
+                #     break
+
             # Reconstruct the code to avoid modifying sorted_data during iteration
             for future in futures:
                 sorted_data = [piece_data for piece_data in sorted_data if piece_data[0] in future]
-            server_index += 1
-            print("Switching to next server...")
+            # server_index += 1
+
             print("sorted_data:", 9999, "server_index:", server_index, "len(selected_servers):", len(selected_servers))
         if sorted_data:
             print("All online peer servers are disconnected or have no pieces. Please retry later !!!")
@@ -175,7 +180,8 @@ def start_downloading(sorted_data, selected_servers, downloading):
                 # Merge contents into a single file
                 # check if file_name exists
                 if os.path.exists(f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}"):
-                    print(f"File {node_info.torrent_info['file_name']} already exists. Please delete it before merging.")
+                    print(f"File {node_info.torrent_info['file_name']} already exists. I will delete it before merging.")
+                    os.remove(f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}")
                     return
                 # Create the directory if it doesn't exist
                 os.makedirs(f"./{node_info.node_folder}/downloaded", exist_ok=True)
@@ -185,7 +191,9 @@ def start_downloading(sorted_data, selected_servers, downloading):
                         with open(dat_file, "rb") as f:
                             merged_file.write(f.read())
                         print(f"Appended {dat_file}")
-
+                    merged_file.close()
+                for dat_file in dat_files:
+                    os.remove(dat_file)
                 print("All .dat files have been successfully merged into merged.dat")
 
 def load_all_torrents(directory):
@@ -234,11 +242,7 @@ if __name__ == "__main__":
     tserver.start()
 
     data_response = client.send_request_to_tracker(
-        # 'http://192.168.31.147:22236',
-        'http://10.0.197.5:22236',
-        # 'http://192.168.31.77:22236',
-        # 'http://10.0.120.133:22236',
-        # 'http://192.168.1.105:22236',
+        node_info.tracker_announce,
         torrent_info['info_hash'],
         torrent_info['file_length'],
         torrent_info['piece_length'],
@@ -269,13 +273,16 @@ if __name__ == "__main__":
             for hand in handshakes:
                 hand.result()
 
-    # Downloading
-    downloading = []
-    # sort data by the number of elements in each list
-    sorted_data = sorted(peer_pieces.items(), key=lambda x: len(x[1]))
-    selected_servers = select_servers(peer_pieces)
-    start_downloading(sorted_data, selected_servers, downloading)
+        downloading = []
+        sorted_data = sorted(peer_pieces.items(), key=lambda x: len(x[1]))
+        selected_servers = select_servers(peer_pieces)
 
+        # clear temporaty folder before download
+        dat_files = glob.glob(f"./{node_info.node_folder}/temp/*.dat")
+        for dat_file in dat_files:
+            os.remove(dat_file)
+        start_downloading(sorted_data, selected_servers, downloading)
+    
     # For server running
     talert.join()
     tserver.join()

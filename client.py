@@ -33,8 +33,6 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
         print("Params:")
         print(params)
 
-        # Sử dụng `with` để tự động đóng kết nối
-
         with requests.get(announce, params=params, timeout=10) as response:
             if response.status_code == 200:
                 print(f"✅")
@@ -58,7 +56,7 @@ def send_alert_to_tracker(interval):
             downloaded = sum(node_info.bitfield_data[node_info.torrent_info['info_hash']])
             left = len(node_info.bitfield_data[node_info.torrent_info['info_hash']]) - downloaded
             event = "completed" if left == 0 else "downloading"
-            response = send_request_to_tracker("http://10.230.77.196:22236",
+            response = send_request_to_tracker(node_info.tracker_announce,
                                                node_info.torrent_info['info_hash'],
                                                node_info.torrent_info['file_length'],
                                                node_info.torrent_info['piece_length'],
