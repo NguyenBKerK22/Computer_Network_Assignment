@@ -104,7 +104,6 @@ def cleanup_inactive_peers():
             if current_time - peer["last_seen"] > 20:
                 peers.remove(peer)
 
-        print(peers)
         time.sleep(5)  # run cleanup every 5 minutes
 
 

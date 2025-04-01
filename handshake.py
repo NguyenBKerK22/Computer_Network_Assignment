@@ -102,13 +102,16 @@ def client_handle_block(socket, message_type, payload):
         
         # utils.map_piece_to_file(filename= f"./{node_info.node_folder}/downloaded/{node_info.torrent_info['file_name']}", piece_index = index_response, piece_data= block)
         node_info.bitfield_data[node_info.torrent_info['info_hash']][index_response] = 1
+        downloaded = sum(node_info.bitfield_data[node_info.torrent_info['info_hash']])
+        left = len(node_info.bitfield_data[node_info.torrent_info['info_hash']]) - downloaded
+        percent = int(downloaded / (downloaded + left) * 100)
+        print("Downloaded percent: {}%".format(percent))
         return True
     else:
         return False
 def server_handle_message(message_type, payload, conn, addr, torrent_info, file):
     if message_type[0] == 4:  # Have (client -> server)
         piece_index = int.from_bytes(payload, 'big')
-        print(f"[HAVE]")
     elif message_type[0] == 6:  # Request (client -> server)
         global f
         index_response = int.from_bytes(payload[:4], 'big')
@@ -123,4 +126,3 @@ def server_handle_message(message_type, payload, conn, addr, torrent_info, file)
         index = int.from_bytes(payload[:4], 'big')
         begin = int.from_bytes(payload[4:8], 'big')
         length = int.from_bytes(payload[8:], 'big')
-        print(f"[CANCEL]")

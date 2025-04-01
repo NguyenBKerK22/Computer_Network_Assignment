@@ -26,9 +26,7 @@ def thread_server(host, port):
     serversocket.listen(10)
 
     while True:
-        print("Wait for connection from other peers...")
         conn, addr = serversocket.accept()
-        print("Incoming connection from: {}".format(addr))
         nconn = Thread(target=new_message_incoming, args=(addr, conn))
         nconn.start()
         # nconn.join()
@@ -39,21 +37,13 @@ def thread_server(host, port):
 #########################################
 def new_message_incoming(addr, conn):
     # Receive Handshake
-    print("\nNew connection from: {}".format(addr))
     handshake_message = conn.recv(constant.NUM_BYTE_HANDSHAKE)
     if not handshake_message:
-        print(f"No handshake received from {addr}")
         conn.close()
         return
 
     # Parse handshake
     recv_message = parsers.parse_handshack_message(handshake_message)
-
-    print(f"Received handshake from {addr}")
-    print(f"pstrlen: {recv_message['pstrlen']}")
-    print(f"pstr: {recv_message['pstr']}")
-    print(f"info_hash: {recv_message['info_hash']}")
-    print(f"peer_id: {recv_message['peer_id']}")
 
     # Find info_hashc
     match_found = False
@@ -64,8 +54,6 @@ def new_message_incoming(addr, conn):
             match_found = True
             break
     if not match_found:
-        print("compare info_hash fail")
-        print(f"Incorrect info_hash from {addr}")
         conn.close()
         return
     file = open(os.path.join(f"./{node_info.node_folder}/files/", torrent_info["file_name"]), 'rb')
@@ -77,7 +65,6 @@ def new_message_incoming(addr, conn):
     response_handshake += binascii.unhexlify(torrent_info['info_hash'])
     response_handshake += node_info.PeerId.encode('utf-8')
     conn.sendall(response_handshake)
-    print(f"Sent response handshake to {addr}")
 
     # Send bitfield back
     bitfield_message = handshake.construct_bitfield_message(
@@ -101,19 +88,14 @@ def new_message_incoming(addr, conn):
             message_length_bytes = conn.recv(4)
              # print(message_length_bytes)
             if not message_length_bytes:
-                print(f"Connection closed by server {addr}")
                 # node.peer_connections.pop(addr, None)
                 return
             message_length = int.from_bytes(message_length_bytes, 'big')
-            print(f"Message length: {message_length}")
             if message_length == 0:
-                print(f"Received keep-alive from server {addr}")
                 continue
             # receive message type
             message_type = conn.recv(1)
-            print(f"Message type: {message_type}")
             if not message_type:
-                print(f"Connection closed by server {addr}")
                 break
             # receive payload
             if message_length > 1:
@@ -123,8 +105,6 @@ def new_message_incoming(addr, conn):
 
             handshake.server_handle_message(message_type, payload, conn, addr, torrent_info, file)
         except socket.error as e:
-            print(f"Connection closed by client {addr}")
-            print(f"Closed file")
             file.close()
             break
 
