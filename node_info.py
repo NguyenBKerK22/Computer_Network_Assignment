@@ -64,12 +64,12 @@ def getq_status():
 
 com_lock = threading.Lock()
 com = {
-    "ip": ""
+    "ip": "",
+    "upload": 0
 }
 
 def set_com(key, value):
     with com_lock:
-        global com
         com[key] = value
 
 def get_com(key):

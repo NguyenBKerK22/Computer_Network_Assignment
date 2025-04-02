@@ -81,7 +81,7 @@ delete_buttons = [pygame.Rect(650-100+35, 115 + i * 50, 30, 30) for i in range(1
 
 # Function to simulate starting a download
 def start_download(link, file_obj):
-    tkk = threading.Thread(target=node.chay_thoi, args=(link, 2, file_obj))
+    tkk = threading.Thread(target=node.chay_thoi, args=(link, 1, file_obj))
     tkk.start()
     
 # Main loop
@@ -151,6 +151,10 @@ def main_ui():
         title = font.render(data, True, BLACK)
         screen.blit(title, (50, 10))
 
+        # print(int(node_info.get_com("upload")))
+        # up = font.render(int(node_info.get_com("upload")) if node_info.get_com("upload") else "0", True, BLACK)
+        # screen.blit(up, (500, 10))
+        
         # Draw the input box
         pygame.draw.rect(screen, BLACK, input_box, 2, border_radius=20)
         if not input_text:

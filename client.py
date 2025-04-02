@@ -55,7 +55,7 @@ def send_alert_to_tracker(interval):
             # Gửi yêu cầu đến tracker
             downloaded = sum(node_info.bitfield_data[node_info.torrent_info['info_hash']])
             left = len(node_info.bitfield_data[node_info.torrent_info['info_hash']]) - downloaded
-            print("len ", left + downloaded, " sum ",downloaded)
+            # print("len ", left + downloaded, " sum ",downloaded)
             event = "completed" if left == 0 else "downloading"
             response = send_request_to_tracker(node_info.tracker_announce,
                                                node_info.torrent_info['info_hash'],

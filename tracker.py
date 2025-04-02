@@ -47,9 +47,9 @@ def new_connection(addr, conn):
                 current_time = time.time()
                 if existing_peer and existing_peer["event"][0] != "completed" and event[0] != "started" :
                     # Cập nhật thời gian last_seen
-                    print(existing_peer)
-                    print(event)
-                    print(existing_peer["event"])
+                    # print(existing_peer)
+                    # print(event)
+                    # print(existing_peer["event"])
                     if event[0] == "stopped":
                         print("Disconnect")
                         peers.remove(existing_peer)
@@ -105,6 +105,7 @@ def cleanup_inactive_peers():
     while True:
         for peer in peers:
             # Remove peers that haven't reannounced within a grace period (e.g., interval + 300 seconds)
+            print(f"Peer: {peer['peer_id']} at {peer['ip']}:{peer['port']}")
             current_time = time.time()
             if current_time - peer["last_seen"] > 20:
                 peers.remove(peer)
