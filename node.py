@@ -156,11 +156,12 @@ def start_downloading(sorted_data, selected_servers, downloading):
                         future = executor.submit(download_pieces_threaded, pieces, sock, ip, port, downloading)
                         futures.append(future.result())
                         break
-                if future:
-                    break
+                # if future:
+                #     break
 
                 if len(value) != 0:
                     server_index = (server_index + 1) % len(value)
+                    print("Switching to next server...")
                 downloaded = sum(node_info.bitfield_data[node_info.torrent_info['info_hash']])
                 if downloaded >= len(sorted_data):
                     break

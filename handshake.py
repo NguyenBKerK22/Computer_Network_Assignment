@@ -119,7 +119,7 @@ def server_handle_message(message_type, payload, conn, addr, torrent_info, file)
         length = int.from_bytes(payload[8:], 'big')
         file.seek(index_response * length + begin)
         block = file.read(length)
-
+        print("Upload: ", index_response)
         block_message = construct_block_message(index_response, len(block), block)
         conn.sendall(block_message)
     elif message_type[0] == 8:  # Cancel (client -> server)
