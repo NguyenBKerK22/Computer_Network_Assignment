@@ -50,7 +50,7 @@ def new_connection(addr, conn):
                     print(existing_peer)
                     print(event)
                     print(existing_peer["event"])
-                    if event == "stopped":
+                    if event[0] == "stopped":
                         peers.remove(existing_peer)
                         return
                     existing_peer.update({
