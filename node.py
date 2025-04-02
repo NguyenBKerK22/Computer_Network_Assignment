@@ -136,9 +136,6 @@ def start_downloading(sorted_data, selected_servers, downloading):
         
         server_index = 0
         while sorted_data and server_index < len(selected_servers):
-            for i in range(len(sorted_data)):
-                index = sorted_data[i][0]
-                value = sorted_data[i][1]
             for index, value in sorted_data:
                 if not value:
                     continue
@@ -153,7 +150,7 @@ def start_downloading(sorted_data, selected_servers, downloading):
                 for server_info, pieces in selected_servers:
                     if ip == server_info[0] and port == server_info[1]:
                         with downloading_lock:
-                            pieces = [piece for piece in pieces if piece not in downloading]
+                            pieces = [piece for piece in pieces if piece not in downloading][:5]
                         if not pieces:
                             break
                         future = executor.submit(download_pieces_threaded, pieces, sock, ip, port, downloading)
