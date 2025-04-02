@@ -205,6 +205,28 @@ def load_all_torrents(directory):
         torrent_info = parsers.parse_torrent(os.path.join(directory, file))
         node_info.files.append(torrent_info)
 
+def checkquit():
+    print("start check quit")
+    while(1):
+        if node_info.getq_status():
+            print("Turn offf")
+            client.send_request_to_tracker(
+            node_info.tracker_announce,
+            "aaa",
+            "222",
+            "123",
+            int(node_info.server_port),
+            node_info.PeerId,
+            node_info.peerip,
+            "stopped",
+            0,
+            0,
+            7
+            )
+            break
+        
+            
+
 def chay_thoi(filepath, nodeid, file_obj):
     print("CALL chay_thoi")
     arr = ["node1", "node2", "node3", "node4", "node5", "seed"]
@@ -243,6 +265,11 @@ def chay_thoi(filepath, nodeid, file_obj):
     node_info.interval = data_response[b'interval']
     talert = threading.Thread(target=client.send_alert_to_tracker, args=(node_info.interval,))
     talert.start()
+    
+    # CHECK QUIT
+    tq = threading.Thread(target=checkquit, args=())
+    tq.start()
+    
     # Get list of pieces
     MAX_THREADS = 5
     peers = parsers.parse_response(data_response)

@@ -93,6 +93,9 @@ def main_ui():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                node_info.setq_status(1)
+                time.sleep(1)
+                os._exit(0)
 
             # Handle input box
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -245,6 +248,7 @@ if __name__ == "__main__":
     # Run the main loop
     main_ui()
 
+    
     # Quit Pygame
     pygame.quit()
     sys.exit()
