@@ -144,7 +144,11 @@ def main_ui():
         screen.fill(WHITE)
 
         # Draw the title
-        title = font.render("My Torrent App", True, BLACK)
+        data = node_info.get_com("ip")
+        if data == "":
+            data = "My torrent app"
+
+        title = font.render(data, True, BLACK)
         screen.blit(title, (50, 10))
 
         # Draw the input box

@@ -30,14 +30,14 @@ def send_request_to_tracker(announce, info_hash, file_length, piece_length, port
         "event": event
     }
     try:
-        print("Params:")
-        print(params)
+        # print("Params:")
+        # print(params)
 
         with requests.get(announce, params=params, timeout=10) as response:
             if response.status_code == 200:
                 print(f"✅")
                 decoded = bencodepy.decode(response.content)
-                print(decoded[b'peers'] if params['compact'] == 0 else decoded[b'peers'].hex())
+                # print(decoded[b'peers'] if params['compact'] == 0 else decoded[b'peers'].hex())
                 return decoded
             else:
                 print(f"⚠️ Tracker request failed with status {response.status_code}")

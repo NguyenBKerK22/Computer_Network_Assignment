@@ -242,6 +242,7 @@ def chay_thoi(filepath, nodeid, file_obj):
     # UI
     file_obj.append({"name": filepath, "progress": 0, "paused": False, "hash": torrent_info['info_hash']})
     node_info.append_status(torrent_info['info_hash'], {"progress": 0, "downloaded": 0, "total": 0})
+    node_info.set_com("ip", node_info.peerip)
 
     load_all_files = load_all_torrents(f"./{node_info.node_folder}/torrents/")
 

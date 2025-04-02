@@ -61,3 +61,17 @@ def setq_status(value):
 def getq_status():
     with quit:
         return status
+
+com_lock = threading.Lock()
+com = {
+    "ip": ""
+}
+
+def set_com(key, value):
+    with com_lock:
+        global com
+        com[key] = value
+
+def get_com(key):
+    with com_lock:
+        return com.get(key)
